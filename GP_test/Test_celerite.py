@@ -28,6 +28,7 @@ rv_ccf      = rv_ccf - rv_ccf[0]                    # relative to the first rv
 if 0: # test plot
     t = np.arange(len(rv_ccf))
     plt.plot(t, rv_ccf, '.')
+    plt.show()
 
 
 #==============================================================================
@@ -42,9 +43,10 @@ y      = y + yerr
 
 if 0:
     plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
-    plt.ylabel(r"$y$")
+    plt.ylabel(r"$RV [m/s]$")
     plt.xlabel(r"$t$")
-    plt.title("simulated data");
+    plt.title("Simulated data -- stellar jitter")
+    plt.show()
 
 
 #==============================================================================
@@ -64,11 +66,11 @@ truth = dict(amp=5, P=25*0.31, phase=0.1)
 y_planet = Model(**truth).get_value(t)
 y        = y + y_planet
 
-if 1:
+if 0:
     plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
-    plt.ylabel(r"$y$")
+    plt.ylabel('RV' r"$[m/s]$")
     plt.xlabel(r"$t$")
-    plt.title("simulated data");
+    plt.title("Simulated data -- planet and jitter");
     plt.show()
 
 

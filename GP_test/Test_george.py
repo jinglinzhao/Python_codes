@@ -15,7 +15,6 @@ Implement GP into RV data
 # Import data 
 #==============================================================================
 
-cd '/Volumes/DataSSD/SOAP_2/outputs/HERMIT_2spot_0720/code'
 from functions import read_rdb
 import numpy as np
 import matplotlib.pyplot as plt
@@ -29,14 +28,15 @@ rv_ccf      = rv_ccf - rv_ccf[0]                    # relative to the first rv
 if 0: # test plot
     t = np.arange(len(rv_ccf))
     plt.plot(t, rv_ccf, '.')
+    plt.show()
 
 
 #==============================================================================
 # Tile the data and generate white noise
 #==============================================================================
 
-y_star      = np.tile(rv_ccf, 3)
-N      = len(y)
+y_star = np.tile(rv_ccf, 3)
+N      = len(y_star)
 t      = np.arange(N)
 
 if 0:
@@ -45,6 +45,7 @@ if 0:
     plt.xlabel(r"$t$ [days]")
     plt.ylim((-8, 12))
     plt.title("Jitter");
+    plt.show()
 
 
 #==============================================================================
@@ -66,7 +67,7 @@ yerr        = 0.5+0.5*np.random.rand(N)     # size of error bar
 delta_y     = np.zeros(N)
 
 for i in range(N):
-    delta_y[i]  = random.normal(0, yerr[i], 1)[0]
+    delta_y[i]  = np.random.normal(0, yerr[i], 1)[0]
 
 y_planet    = y_planet + delta_y
 
@@ -80,7 +81,7 @@ if 1:   # planet
 
 
 
-y        = y + y_planet
+y        = y_star + y_planet
 
 if 1:
     plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
@@ -102,13 +103,16 @@ from george import kernels
 k1  = kernels.ExpSine2Kernel(gamma = 6, log_period = np.log(25))
 k2  = np.var(y) * kernels.ExpSquaredKernel(1)
 kernel = k1 * k2
+# mean: An object (following the modeling protocol) that specifies the mean function of the GP.
 #gp = george.GP(k, mean=Model(amp=4.4, P=7.6, phase=0))
-gp  = george.GP(kernel, mean=Model(**truth ), white_noise = np.log(1), fit_white_noise = True)                                         # mean: An object (following the modeling protocol) that specifies the mean function of the GP.
+gp  = george.GP(kernel, mean=Model(**truth ), white_noise = np.log(1), fit_white_noise = True)                                         
 gp.compute(t, yerr)   
 
 def lnprob2(p):
-    gp.set_parameter_vector(p)                                                  # Set the parameter values to the given vector
-    return gp.log_likelihood(y, quiet=True) + gp.log_prior()                    # Compute the logarithm of the marginalized likelihood of a set of observations under the Gaussian process model. 
+    # Set the parameter values to the given vector
+    gp.set_parameter_vector(p)                                                  
+    # Compute the logarithm of the marginalized likelihood of a set of observations under the Gaussian process model. 
+    return gp.log_likelihood(y, quiet=True) + gp.log_prior()                    
 
 #==============================================================================
 # run MCMC on this model
