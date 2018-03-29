@@ -119,7 +119,8 @@ def lnprob2(p):
 #==============================================================================
 
 import emcee
-initial = gp.get_parameter_vector()                                             # Get an array of the parameter values in the correct order. len(initial) = 5. 
+# Get an array of the parameter values in the correct order. len(initial) = 5. 
+initial = gp.get_parameter_vector()                                            
 ndim, nwalkers = len(initial), 32
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob2)
 

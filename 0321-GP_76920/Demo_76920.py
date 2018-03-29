@@ -1,6 +1,77 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+'''
+Based on Demo_george.py and implemented the data of HD76920.
+'''
+
+#==============================================================================
+# Model fitting with correlated noise
+#==============================================================================
+
+import george
+george.__version__
+
+#==============================================================================
+# Simulated Dataset
+#==============================================================================
+
+from george.modeling import Model
 import numpy as np
 import matplotlib.pyplot as plt
+from george import kernels
 from rv import solve_kep_eqn
+
+
+class Model(Model):
+    parameter_names = ('n', 'tau', 'k', 'w', 'e0', 'offset')
+
+    def get_value(self, t):
+         e_anom 	= solve_kep_eqn(self.n*(t.flatten()-self.tau), self.e0)
+         f 		= 2*np.arctan2(np.sqrt(1+self.e0)*np.sin(e_anom*.5),np.sqrt(1-self.e0)*np.cos(e_anom*.5))
+         return self.k*(np.cos(f + self.w) + self.e0*np.cos(self.w)) + self.offset
+        # return self.n+self.tau+self.k+self.w+self.e0+self.offset*t.flatten()
+        
+'''        
+class Model(Model):
+    parameter_names = ("amp", "location", "log_sigma2")
+
+    def get_value(self, t):
+        return self.amp * np.exp(-0.5*(t.flatten()-self.location)**2 * np.exp(-self.log_sigma2))
+
+np.random.seed(1234)
+
+def generate_data(params, N, rng=(-5, 5)):
+    gp = george.GP(0.1 * kernels.ExpSquaredKernel(3.3))
+    t = rng[0] + np.diff(rng) * np.sort(np.random.rand(N))                      # N number of random numbers ranging from -5 to 5
+    y = gp.sample(t)
+    y += Model(**params).get_value(t)
+    yerr = 0.05 + 0.05 * np.random.rand(N)
+    y += yerr * np.random.randn(N)
+    return t, y, yerr
+'''
+
+
+# The dict() constructor builds dictionaries directly from sequences of key-value pairs:
+#truth = dict(amp=-2.0, location=0.1, log_sigma2=np.log(0.4))             
+truth 	= dict(n=0.0151661049, tau=62.19, k=186.8, w=0, e0=0.856, offset=0)        
+#t, y, yerr = generate_data(truth, 50)
+'''
+pl.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
+pl.ylabel(r"$y$")
+pl.xlabel(r"$t$")
+pl.xlim(-5, 5)
+pl.title("simulated data")
+pl.show()
+'''
+
+
+
+
+
+
+
+
 
 
 #==============================================================================
@@ -54,7 +125,7 @@ for k in range(len(DATA_MJ3)):
 	RV_MJ3[k, 1] 	= RV_MJ3[k, 1] - OFFSET_MJ3
 
 
-if 1:
+if 0:
     plt.errorbar(RV_AAT[:,0], 	RV_AAT[:,1], 	yerr=RV_AAT[:,2], 	fmt=".", capsize=0, label='AAT')
     plt.errorbar(RV_CHIRON[:,0],RV_CHIRON[:,1], yerr=RV_CHIRON[:,2],fmt=".", capsize=0, label='CHIRON')
     plt.errorbar(RV_FEROS[:,0], RV_FEROS[:,1], 	yerr=RV_FEROS[:,2], fmt=".", capsize=0, label='FEROS')
@@ -70,93 +141,39 @@ if 1:
 # Concatenate the five data sets # 
 RV_ALL 	= np.concatenate((RV_AAT, RV_CHIRON, RV_FEROS, RV_MJ1, RV_MJ3))
 
-if 0: 
-	plt.errorbar(RV_ALL[:,0], RV_ALL[:,1], yerr=RV_ALL[:,2], fmt=".", capsize=0)
-	plt.ylabel(r"$RV [m/s]$")
-	plt.xlabel(r"$JD$")
-	plt.title("RV time series")
-	plt.show()
 
 
-#==============================================================================
-# Test Fit 
-#==============================================================================    
-import george
-from george.modeling import Model
+
+y   = RV_ALL[:,1]
 
 
-class Model(Model):
-    parameter_names = ('n', 'tau', 'k', 'w', 'e0', 'offset')
 
-    def get_value(self, t):
-         e_anom 	= solve_kep_eqn(self.n*(t.flatten()-self.tau),self.e0)
-         f 		= 2*np.arctan2(np.sqrt(1+self.e0)*np.sin(e_anom*.5),np.sqrt(1-self.e0)*np.cos(e_anom*.5))
-         return self.k*(np.cos(f + self.w) + self.e0*np.cos(self.w)) + self.offset
-        # return self.n+self.tau+self.k+self.w+self.e0+self.offset*t.flatten()
-
-
-# initial guess of parameters # 
-'''
-# Period (days)
-P0 = 415.4 / 6.3
-n = 1/P0
-
-# Eccentricity 
-e0 = 0.856
-
-# omega ?
-w = 0
-
-# tau = time of pericenter passage ? 
-tau = 62.19
-	
-# k = amplitude of radial velocity (m/s)
-K = 186.8
-
-# offset 
-offset = 0
-'''
-
-t 		= np.linspace(min(RV_ALL[:,0]), max(RV_ALL[:,0]), num=10000, endpoint=True)
-# truth 	= dict(n=0.0151661049, tau=62.19, k=186.8, w=0, e0=0.856, offset=0) 
-truth       = dict(amp=5, P=25*0.31, phase=0.1) 
-
-# y		= Model(**truth).get_value(RV_ALL[:,0])
-y		= Model(**truth).get_value(t)
-
-# Plot the data using the star.plot function
-# plt.plot(RV_ALL[:,0], y, '-')
-plt.plot(t, y, '-')
-plt.ylabel('RV' r"$[m/s]$")
-plt.xlabel('t')
-plt.title('Simulated RV')
-plt.show()
 
 
 
 #==============================================================================
-# GP Modelling 
-#==============================================================================    
+# Modelling correlated noise
+#==============================================================================
 
-from george.modeling import Model
-from george import kernels
+# mean: An object (following the modeling protocol) that specifies the mean function of the GP.
 
-k1  	= kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(415.4))
-k2  	= np.var(y) * kernels.ExpSquaredKernel(1)
-kernel 	= k1 * k2
 
-gp  = george.GP(kernel, mean=Model(**truth ), white_noise = np.log(1), fit_white_noise = True)                                         
+kwargs = dict(**truth)
+kwargs["bounds"] = dict(e0=(0.5, 1.0))
+mean_model = Model(**kwargs)
+gp = george.GP(np.var(y) * kernels.Matern32Kernel(10.0), mean=Model(**truth))   
 
-# gp  	= george.GP(kernel, mean=Model(**truth))                                         
-gp.compute(RV_ALL[:,0], RV_ALL[:,2])   
+# compute(x, yerr=0.0, **kwargs). Pre-compute the covariance matrix and factorize it for a set of times and uncertainties.
+gp.compute(RV_ALL[:,0], RV_ALL[:,2])                                                             
+
 
 def lnprob2(p):
+
     # Set the parameter values to the given vector
     gp.set_parameter_vector(p)                                                  
+
     # Compute the logarithm of the marginalized likelihood of a set of observations under the Gaussian process model. 
     return gp.log_likelihood(y, quiet=True) + gp.log_prior()                    
-
-
 
 
 #==============================================================================
@@ -164,8 +181,9 @@ def lnprob2(p):
 #==============================================================================
 
 import emcee
+
 # Get an array of the parameter values in the correct order. len(initial) = 5. 
-initial = gp.get_parameter_vector()                                            
+initial = gp.get_parameter_vector()                                             
 ndim, nwalkers = len(initial), 32
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob2)
 
@@ -184,32 +202,55 @@ sampler.run_mcmc(p0, 1000);
 
 
 
+#==============================================================================
+# plot the posterior samples on top of the data
+#==============================================================================
 
+# Plot the data.
+pl.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
 
+# The positions where the prediction should be computed.
+x = np.linspace(-5, 5, 500)
 
+# Plot 24 posterior samples.
+samples = sampler.flatchain
+for s in samples[np.random.randint(len(samples), size=24)]:
+    gp.set_parameter_vector(s)
+    mu = gp.sample_conditional(y, x)
+    pl.plot(x, mu, color="#4682b4", alpha=0.3)
+
+pl.ylabel(r"$y$")
+pl.xlabel(r"$t$")
+pl.xlim(-5, 5)
+pl.title("fit with GP noise model");
+pl.show()
 
 
 #==============================================================================
-# Check the data sets
+# Corner plots
 #==============================================================================
+import corner
+tri_cols = ["amp", "location", "log_sigma2"]
+tri_labels = [r"$\alpha$", r"$\ell$", r"$\ln\sigma^2$"]
+tri_truths = [truth[k] for k in tri_cols]
+tri_range = [(-2, -0.01), (-3, -0.5), (-1, 1)]
+names = gp.get_parameter_names()
+inds = np.array([names.index("mean:"+k) for k in tri_cols])
+corner.corner(sampler.flatchain[:, inds], truths=tri_truths, labels=tri_labels);
 
-if 0: 
 
-	# check the completeness of data 
-	(len(DATA_AAT) + len(DATA_CHIRON) + len(DATA_FEROS) + len(DATA_MJ1) + len(DATA_MJ3)) == len(all_rvs)
 
-	x 	= [all_rvs[k][0] for k in range(len(all_rvs))]
-	y 	= [all_rvs[k][1] for k in range(len(all_rvs))]
-	yerr= [all_rvs[k][2] for k in range(len(all_rvs))]
-	yerr= [(i**2 + 7**2)**0.5 for i in yerr]
 
-	# Plot the whole raw time series
 
-	plt.errorbar(x, y, yerr=yerr, fmt=".", capsize=0)
-	plt.ylabel(r"$RV [m/s]$")
-	plt.xlabel(r"$JD$")
-	plt.title("Raw RV time series")
-	plt.show()
+
+
+
+
+
+
+
+
+
 
 
 

@@ -7,7 +7,7 @@ from rv import *
 
 
 
-def fitting_function(t,n,tau,k,w,e):
+def fitting_function(t,n,tau,k,w,e,offset):
     """Obtain the radial velocity due to a single planet.
         t = time of measurement,
         n = angular frequency of planet,
@@ -26,7 +26,7 @@ def fitting_function(t,n,tau,k,w,e):
 
     f = 2*np.arctan2(np.sqrt(1+e)*np.sin(e_anom*.5),np.sqrt(1-e)*np.cos(e_anom*.5))
 
-    return k*(np.cos(f + w) + e*np.cos(w))
+    return k*(np.cos(f + w) + e*np.cos(w)) + offset
 
 
 
@@ -44,6 +44,7 @@ def fit_data(star,fitting_function):
         tau0 = star.t[0]
     w0 = 0
     e0 = 0.5
+    offset = 0
     initial_guess = (n0,tau0,k0,w0,e0)
 
 
