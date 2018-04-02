@@ -3,39 +3,44 @@
 
 '''
 Based on Demo_george.py and implemented the data of HD76920.
+Change to celerite
 '''
-
-#==============================================================================
-# Model fitting with correlated noise
-#==============================================================================
-
-import george
-george.__version__
 
 #==============================================================================
 # Simulated Dataset
 #==============================================================================
 
-from george.modeling import Model
 import numpy as np
 import matplotlib.pyplot as plt
-from george import kernels
 from rv import solve_kep_eqn
+from celerite.modeling import Model
 
-
+'''
 class Model(Model):
     parameter_names = ('n', 'tau', 'k', 'w', 'e0', 'offset')
 
     def get_value(self, t):
-         e_anom 	= solve_kep_eqn(self.n*(t.flatten()-self.tau), self.e0)
+         e_anom = solve_kep_eqn(self.n*(t.flatten()-self.tau), self.e0)
          f 		= 2*np.arctan2(np.sqrt(1+self.e0)*np.sin(e_anom*.5),np.sqrt(1-self.e0)*np.cos(e_anom*.5))
          return self.k*(np.cos(f + self.w) + self.e0*np.cos(self.w)) + self.offset
-        
+'''
+
+
+class Model(Model):
+    parameter_names = ('P', 'tau', 'k', 'w', 'e0', 'offset')
+
+    def get_value(self, t):
+        M_anom  = 2*np.pi/self.P * (t.flatten() - self.tau)
+        e_anom  = solve_kep_eqn(M_anom, self.e0)
+        print(self.e0)
+        f       = 2*np.arctan( np.sqrt((1+self.e0)/(1-self.e0))*np.tan(e_anom*.5) )
+        return self.k*(np.cos(f + self.w) + self.e0*np.cos(self.w)) + self.offset
+                
 
 # The dict() constructor builds dictionaries directly from sequences of key-value pairs:
 #truth = dict(amp=-2.0, location=0.1, log_sigma2=np.log(0.4))             
 # might consider using log scale
-truth 	= dict(n=0.0151661049, tau=62.19, k=186.8, w=0, e0=0.856, offset=0)        
+truth 	= dict(P=415.4, tau=4867, k=186.8, w=0, e0=0.856, offset=0)        
 
 
 
@@ -57,8 +62,8 @@ DATA_MJ3 	= [all_rvs[k] for k in range(len(all_rvs)) if all_rvs[k][3] == b'MJ3']
 # apply the offset
 #==============================================================================
 
-OFFSET_CHIRON 	= -73.098470
-OFFSET_FEROS	= -6.5227172
+OFFSET_CHIRON   = -73.098470
+OFFSET_FEROS	   = -6.5227172
 OFFSET_MJ1 		= -14.925970
 OFFSET_MJ3 		= -56.943472
 
@@ -104,9 +109,9 @@ if 0:
 
 # Concatenate the five data sets # 
 RV_ALL  = np.concatenate((RV_AAT, RV_CHIRON, RV_FEROS, RV_MJ1, RV_MJ3))
-t       = RV_ALL[:,0]
-y       = RV_ALL[:,1]
-yerr    = RV_ALL[:,2]
+#t       = RV_ALL[:,0]
+#y       = RV_ALL[:,1]
+#yerr    = RV_ALL[:,2]
 
 # sort array #
 
@@ -114,21 +119,23 @@ RV_SORT = sorted(RV_ALL, key=lambda x: x[0])
 t       = [RV_SORT[i][0] for i in range(len(RV_SORT))]
 y       = [RV_SORT[i][1] for i in range(len(RV_SORT))]
 yerr    = [RV_SORT[i][2] for i in range(len(RV_SORT))]
-
-
+#yerr    = [(yerr[i]**2 + 7**2)**0.5 for i in range(len(RV_SORT))]
 
 #==============================================================================
 # Modelling correlated noise
 #==============================================================================
 
-kwargs = dict(**truth)
-kwargs["bounds"] = dict(e0=(0.5, 1.0))
-mean_model = Model(**kwargs)
+import celerite
+celerite.__version__
+from celerite import terms
+
+bounds = dict(P=(350,450), k=(100,300), w=(-2*np.pi, 2*np.pi), e0=(0.8, 0.95), offset=(-100,100))
+kernel  = terms.SHOTerm(np.log(2), np.log(2), np.log(5), bounds=bounds)
 # mean: An object (following the modeling protocol) that specifies the mean function of the GP.
-gp = george.GP(np.var(y) * kernels.Matern32Kernel(10.0), mean=Model(**truth))   
+gp  = celerite.GP(kernel, mean=Model(**truth ), fit_mean = True)
 
 # compute(x, yerr=0.0, **kwargs). Pre-compute the covariance matrix and factorize it for a set of times and uncertainties.
-gp.compute(RV_ALL[:,0], RV_ALL[:,2])                                                             
+gp.compute(t, yerr)                                                             
 
 
 def lnprob2(p):
@@ -169,12 +176,13 @@ sampler.run_mcmc(p0, 1000);
 #==============================================================================
 # plot the posterior samples on top of the data
 #==============================================================================
-
 # Plot the data.
+'''
+
 plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
 
 # The positions where the prediction should be computed.
-x = np.linspace(min(RV_ALL[:,0]), max(RV_ALL[:,0]), num=10000, endpoint=True)
+x = np.linspace(min(RV_ALL[:,0]), max(RV_ALL[:,0]), num=1000, endpoint=True)
 
 # Plot 24 posterior samples.
 samples = sampler.flatchain
@@ -189,23 +197,27 @@ plt.xlabel(r"$t$")
 plt.title("fit with GP noise model");
 plt.show()
 
+'''
+
+x = np.linspace(min(RV_ALL[:,0]), max(RV_ALL[:,0]), num=10000, endpoint=True)
+pred_mean, pred_var = gp.predict(y, x, return_var=True)
+pred_std = np.sqrt(pred_var)
+
+color = "#ff7f0e"
+plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
+plt.plot(x, pred_mean, color=color)
+plt.fill_between(x, pred_mean+pred_std, pred_mean-pred_std, color=color, alpha=0.3,
+                 edgecolor="none")
+
+
 
 #==============================================================================
 # Corner plots
 #==============================================================================
 import corner
-tri_cols = ["amp", "location", "log_sigma2"]
-tri_labels = [r"$\alpha$", r"$\ell$", r"$\ln\sigma^2$"]
-tri_truths = [truth[k] for k in tri_cols]
-tri_range = [(-2, -0.01), (-3, -0.5), (-1, 1)]
-names = gp.get_parameter_names()
-inds = np.array([names.index("mean:"+k) for k in tri_cols])
-corner.corner(sampler.flatchain[:, inds], truths=tri_truths, labels=tri_labels);
 
-
-tri_cols = ['n', 'tau', 'k', 'w', 'e0', 'offset']
-#tri_labels = [r"$\n$", r"$\tau$", r"$\k$", r"$\w$", r"$\e_0$", r"$\offset$"]
-tri_labels = ['n', 'tau', 'k', 'w', 'e0', 'offset']
+tri_cols = ['P', 'tau', 'k', 'w', 'e0', 'offset']
+tri_labels = ['P', 'tau', 'k', 'w', 'e0', 'offset']
 tri_truths = [truth[k] for k in tri_cols]
 names = gp.get_parameter_names()
 inds = np.array([names.index("mean:"+k) for k in tri_cols])
