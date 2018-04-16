@@ -118,8 +118,8 @@ offset = 0
 '''
 
 t 		= np.linspace(min(RV_ALL[:,0]), max(RV_ALL[:,0]), num=10000, endpoint=True)
-# truth 	= dict(n=0.0151661049, tau=62.19, k=186.8, w=0, e0=0.856, offset=0) 
-truth       = dict(amp=5, P=25*0.31, phase=0.1) 
+truth 	= dict(n=0.0151661049, tau=62.19, k=186.8, w=0, e0=0.856, offset=0) 
+#truth       = dict(amp=5, P=25*0.31, phase=0.1) 
 
 # y		= Model(**truth).get_value(RV_ALL[:,0])
 y		= Model(**truth).get_value(t)
@@ -145,7 +145,7 @@ k1  	= kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(415.4))
 k2  	= np.var(y) * kernels.ExpSquaredKernel(1)
 kernel 	= k1 * k2
 
-gp  = george.GP(kernel, mean=Model(**truth ), white_noise = np.log(1), fit_white_noise = True)                                         
+gp  = george.GP(kernel, mean=Model(**truth), white_noise = np.log(1), fit_white_noise = True)                                         
 
 # gp  	= george.GP(kernel, mean=Model(**truth))                                         
 gp.compute(RV_ALL[:,0], RV_ALL[:,2])   
