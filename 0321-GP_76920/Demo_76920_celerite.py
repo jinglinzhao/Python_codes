@@ -36,13 +36,13 @@ class Model(Model):
         f       = 2*np.arctan( np.sqrt((1+self.e0)/(1-self.e0))*np.tan(e_anom*.5) )
         return self.k*(np.cos(f + self.w) + self.e0*np.cos(self.w)) + self.offset
 
-bounds = dict(P=(350.,450.), tau=(4000.,5000.), k=(100.,300.), w=(-2*np.pi, 2*np.pi), e0=(0.8, 0.95), offset=(-100.,100.))
+# bounds = dict(P=(350.,450.), tau=(4000.,5000.), k=(100.,300.), w=(-2*np.pi, 2*np.pi), e0=(0.8, 0.95), offset=(-100.,100.))
 
 
 # The dict() constructor builds dictionaries directly from sequences of key-value pairs:
 #truth = dict(amp=-2.0, location=0.1, log_sigma2=np.log(0.4))             
 # might consider using log scale
-truth 	= dict(P=415.4, tau=4867, k=186.8, w=0, e0=0.856, offset=0)        
+truth 	= dict(P=415.4, tau=4867, k=186.8, w=-0.06, e0=0.856, offset=0)        
 
 
 
@@ -236,7 +236,6 @@ sampler.run_mcmc(p0, 1000);
 # plot the posterior samples on top of the data
 #==============================================================================
 # Plot the data.
-'''
 
 plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
 
@@ -256,7 +255,6 @@ plt.xlabel(r"$t$")
 plt.title("fit with GP noise model");
 plt.show()
 
-'''
 
 x = np.linspace(min(RV_ALL[:,0]), max(RV_ALL[:,0]), num=10000, endpoint=True)
 pred_mean, pred_var = gp.predict(y, x, return_var=True)
@@ -267,6 +265,7 @@ plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
 plt.plot(x, pred_mean, color=color)
 plt.fill_between(x, pred_mean+pred_std, pred_mean-pred_std, color=color, alpha=0.3,
                  edgecolor="none")
+plt.show()
 
 
 
@@ -281,13 +280,22 @@ tri_truths = [truth[k] for k in tri_cols]
 names = gp.get_parameter_names()
 inds = np.array([names.index("mean:"+k) for k in tri_cols])
 corner.corner(sampler.flatchain[:, inds], truths=tri_truths, labels=tri_labels)
+plt.savefig('corner.png')
 plt.show()
 
 
+samples = sampler.chain[:, 50:, :].reshape((-1, ndim))
+a0, a1, a2, a3, a4, a5, a6, a7, a8 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
 
+aa = np.zeros((6,3))
+aa[0,:] = [a3[i] for i in range(3)]
+aa[1,:] = [a4[i] for i in range(3)]
+aa[2,:] = [a5[i] for i in range(3)]
+aa[3,:] = [a6[i] for i in range(3)]
+aa[4,:] = [a7[i] for i in range(3)]
+aa[5,:] = [a8[i] for i in range(3)]
 
-
-
+np.savetxt('fit_parameter.txt', aa, fmt='%.6f')
 
 
 
