@@ -2,49 +2,12 @@
 # -*- coding: utf-8 -*-
 
 '''
-Based on Demo_george.py and implemented the data of HD76920.
-Change to celerite
+Based on Demo_76920_celerite.py
+Introduce individual offsets 
 '''
-
-#==============================================================================
-# Simulated Dataset
-#==============================================================================
 
 import numpy as np
 import matplotlib.pyplot as plt
-from rv import solve_kep_eqn
-from celerite.modeling import Model
-
-'''
-class Model(Model):
-    parameter_names = ('n', 'tau', 'k', 'w', 'e0', 'offset')
-
-    def get_value(self, t):
-         e_anom = solve_kep_eqn(self.n*(t.flatten()-self.tau), self.e0)
-         f 		= 2*np.arctan2(np.sqrt(1+self.e0)*np.sin(e_anom*.5),np.sqrt(1-self.e0)*np.cos(e_anom*.5))
-         return self.k*(np.cos(f + self.w) + self.e0*np.cos(self.w)) + self.offset
-'''
-
-
-class Model(Model):
-    parameter_names = ('P', 'tau', 'k', 'w', 'e0', 'offset')
-
-    def get_value(self, t):
-        M_anom  = 2*np.pi/self.P * (t.flatten() - self.tau)
-        # print(M_anom)
-        e_anom  = solve_kep_eqn(M_anom, self.e0)
-        # print(self.e0)
-        f       = 2*np.arctan( np.sqrt((1+self.e0)/(1-self.e0))*np.tan(e_anom*.5) )
-        return self.k*(np.cos(f + self.w) + self.e0*np.cos(self.w)) + self.offset
-
-# bounds = dict(P=(350.,450.), tau=(4000.,5000.), k=(100.,300.), w=(-2*np.pi, 2*np.pi), e0=(0.8, 0.95), offset=(-100.,100.))
-
-
-# The dict() constructor builds dictionaries directly from sequences of key-value pairs:
-#truth = dict(amp=-2.0, location=0.1, log_sigma2=np.log(0.4))             
-# might consider using log scale
-truth 	= dict(P=415.9, tau=4812, k=186.8, w=-0.06, e0=0.856, offset=0)        
-
 
 
 #==============================================================================
@@ -107,7 +70,7 @@ if 1:
     plt.xlabel(r"$JD$")
     plt.title("Adjusted RV time series")
     plt.legend()
-    # plt.show()
+    plt.show()
 
 
 # Concatenate the five data sets # 
@@ -116,31 +79,67 @@ RV_SORT = sorted(RV_ALL, key=lambda x: x[0])
 t       = [RV_SORT[i][0] for i in range(len(RV_SORT))]
 y       = [RV_SORT[i][1] for i in range(len(RV_SORT))]
 yerr    = [RV_SORT[i][2] for i in range(len(RV_SORT))]
-plt.errorbar(t, y, yerr=yerr, fmt=".")
-plt.ylabel(r"$RV [m/s]$")
-plt.xlabel(r"$JD$")
-plt.show()
 #yerr    = [(yerr[i]**2 + 7**2)**0.5 for i in range(len(RV_SORT))]
 
+
 #==============================================================================
-# Modelling correlated noise
+# Gaussian Processes
 #==============================================================================
 
 import celerite
 celerite.__version__
+from celerite.modeling import Model
 from celerite import terms
+from rv import solve_kep_eqn
 
-# bounds = dict(P=(350,400), k=(100,300), w=(-2*np.pi, 2*np.pi), e0=(0.8, 0.95), offset=(-100,100))
-# bounds = dict(log_S0 = (0,2), log_Q=(0,2), log_omega0=(0,2), P=(350,400), k=(100,300), w=(-2*np.pi, 2*np.pi), e0=(0.8, 0.95), offset=(-100,100))
-# bounds[3] = (350,400)
-# bounds[4] = (0, 10000)
-# bounds[5] = (100,300)
-# bounds[6] = (-2*np.pi, 2*np.pi)
-# bounds[7] = (0.8, 0.95)
-# bounds[8] = (-100,100)
+
+class Model(Model):
+    parameter_names = ('P', 'tau', 'k', 'w', 'e0', 'off_aat', 'off_chiron', 'off_feros', 'off_mj1', 'off_mj3')
+
+    def get_value(self, t):
+        # print('**************************')
+        # print(t.flatten())
+        M_anom  = 2*np.pi/self.P * (t.flatten() - self.tau)
+        e_anom  = solve_kep_eqn(M_anom, self.e0)
+        f       = 2*np.arctan( np.sqrt((1+self.e0)/(1-self.e0))*np.tan(e_anom*.5) )
+        rv      = self.k*(np.cos(f + self.w) + self.e0*np.cos(self.w))
+
+        offset = np.zeros(len(t))
+        for i in range(len(t)):
+            if t[i] in RV_AAT[:,0]:
+                offset[i] = self.off_aat
+            if t[i] in RV_CHIRON[:,0]:
+                offset[i] = self.off_chiron
+            if t[i] in RV_FEROS[:,0]:
+                offset[i] = self.off_feros           
+            if t[i] in RV_MJ1[:,0]:
+                offset[i] = self.off_mj1
+            if t[i] in RV_MJ3[:,0]:
+                offset[i] = self.off_mj3             
+
+        return rv + offset
+
+'''
+        if t.flatten() in RV_AAT[:,0]:
+            return rv + self.off_aat
+        if t.flatten() in RV_CHIRON[:,0]:
+            return rv + self.off_chiron
+        if t.flatten() in RV_FEROS[:,0]:
+            return rv + self.off_feros           
+        if t.flatten() in RV_MJ1[:,0]:
+            return rv + self.off_mj1
+        if t.flatten() in RV_MJ3[:,0]:
+            return rv + self.off_mj3
+
+        for i in range(len(t))
+'''
+
+# The dict() constructor builds dictionaries directly from sequences of key-value pairs:
+# might consider using log scale
+truth   = dict(P=415.4, tau=4812, k=186.8, w=-0.06, e0=0.88, off_aat=0, off_chiron=0, off_feros=0, off_mj1=0, off_mj3=0)        
 
 kernel  = terms.SHOTerm(np.log(2), np.log(2), np.log(5))
-# kernel  = terms.SHOTerm(np.log(2), np.log(2), np.log(5), 415.4, 4867, 186.8, 0, 0.856, 0, bounds=bounds)
+
 # mean: An object (following the modeling protocol) that specifies the mean function of the GP.
 gp  = celerite.GP(kernel, mean=Model(**truth), fit_mean = True)
 
@@ -149,56 +148,15 @@ gp.compute(t, yerr)
 
 
 
-
-
-####################################################################
-
-if 0:
-
-    from scipy.optimize import minimize
-
-    def neg_log_like(params, y, gp):
-        gp.set_parameter_vector(params)
-        return -gp.log_likelihood(y)
-
-    initial_params = gp.get_parameter_vector()
-    r = minimize(neg_log_like, initial_params, method="L-BFGS-B", bounds=bounds, args=(y, gp))
-
-####################################################################
-
-
 #==============================================================================
-# Test  1
-#==============================================================================
-
-if 0: 
-
-    kwargs = dict(**truth)
-    kwargs["bounds"] = dict(location=(-2, 2))
-    mean_model = Model(**kwargs)
-    gp = george.GP(np.var(y) * kernels.Matern32Kernel(10.0), mean=mean_model)
-    gp.compute(t, yerr)
-    #####
-
-    def lnprob2(p):
-        
-        print(p)
-        # Set the parameter values to the given vector
-        gp.set_parameter_vector(p)                                                  
-
-        # Compute the logarithm of the marginalized likelihood of a set of observations under the Gaussian process model. 
-        return gp.log_likelihood(y, quiet=True) + gp.log_prior()                    
-
-
-
-#==============================================================================
-# Test 2
+# log likelihood
 #==============================================================================
 
 def lnprob2(p):
     
     # Trivial uniform prior.
-    if ((0.7 > p[7]) or (p[7] > 0.99) or (p[3]>450) or (p[3]<350) or (p[5]<100) or (p[5]>300) or (p[6]<-np.pi) or (p[6]>np.pi)):
+    if ((p[3]>450) or (p[3]<350) or (p[5]<100) or (p[5]>300) or (p[6]<-np.pi) or (p[6]>np.pi) or (p[7] < 0.7) or (p[7] > 0.99) or (p[8] < -30) or (p[8] > 30)
+        or (p[9] < -30) or (p[9] > 30) or (p[10] < -30) or (p[10] > 30) or (p[11] < -30) or (p[11] > 30) or (p[12] < -30) or (p[12] > 30)):
         print(p)
         return -np.inf
 
@@ -206,7 +164,6 @@ def lnprob2(p):
     gp.set_parameter_vector(p)
     return gp.log_likelihood(y, quiet=True) + gp.log_prior()
 
-##################
 
 
 #==============================================================================
@@ -222,14 +179,14 @@ sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob2)
 
 print("Running first burn-in...")
 p0 = initial + 1e-8 * np.random.randn(nwalkers, ndim)
-p0, lp, _ = sampler.run_mcmc(p0, 2000)
+p0, lp, _ = sampler.run_mcmc(p0, 500)
 # p0, lp, _ = sampler.run_mcmc(p0, 2000)
 
 
 print("Running second burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-8 * np.random.randn(nwalkers, ndim)
 sampler.reset()
-p0, _, _ = sampler.run_mcmc(p0, 2000)
+p0, _, _ = sampler.run_mcmc(p0, 500)
 sampler.reset()
 
 print("Running production...")
@@ -279,8 +236,8 @@ plt.show()
 #==============================================================================
 import corner
 
-tri_cols = ['P', 'tau', 'k', 'w', 'e0', 'offset']
-tri_labels = ['P', 'tau', 'k', 'w', 'e0', 'offset']
+tri_cols = ['P', 'tau', 'k', 'w', 'e0', 'off_aat', 'off_chiron', 'off_feros', 'off_mj1', 'off_mj3']
+tri_labels = ['P', 'tau', 'k', 'w', 'e0', 'OFFSET_AAT', 'OFFSET_CHIRON', 'OFFSET_FEROS', 'OFFSET_MJ1', 'OFFSET_MJ3']
 tri_truths = [truth[k] for k in tri_cols]
 names = gp.get_parameter_names()
 inds = np.array([names.index("mean:"+k) for k in tri_cols])
@@ -303,22 +260,6 @@ aa[5,:] = [a8[i] for i in range(3)]
 np.savetxt('fit_parameter.txt', aa, fmt='%.6f')
 
 
-# chi2
-plt.errorbar(t, y, yerr=yerr, fmt=".")
-plt.ylabel(r"$RV [m/s]$")
-plt.xlabel(r"$JD$")
-
-parameters = np.loadtxt('fit_parameter1000_3.txt')
-P, tau, k, w, e0, offset = parameters[:,0]
-fit_curve = Model(P=P, tau=tau, k=k, w=w, e0=e0, offset=offset)
-t_fit   = np.linspace(min(RV_ALL[:,0]), max(RV_ALL[:,0]), num=10001, endpoint=True)
-y_fit   = fit_curve.get_value(np.array(t_fit))
-plt.plot(t_fit, y_fit)
-plt.show()
-
-residual = fit_curve.get_value(np.array(t)) - np.array(y)
-chi2 = sum(residual**2 / np.array(yerr)**2)
-rms = np.sqrt(np.mean(residual**2))
 
 
 

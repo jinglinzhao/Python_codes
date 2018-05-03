@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-Based on Demo_george.py and implemented the data of HD76920.
+Based on Demo_76920_celerite.py.
 Change to celerite
 '''
 
@@ -14,16 +14,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from rv import solve_kep_eqn
 from celerite.modeling import Model
-
-'''
-class Model(Model):
-    parameter_names = ('n', 'tau', 'k', 'w', 'e0', 'offset')
-
-    def get_value(self, t):
-         e_anom = solve_kep_eqn(self.n*(t.flatten()-self.tau), self.e0)
-         f 		= 2*np.arctan2(np.sqrt(1+self.e0)*np.sin(e_anom*.5),np.sqrt(1-self.e0)*np.cos(e_anom*.5))
-         return self.k*(np.cos(f + self.w) + self.e0*np.cos(self.w)) + self.offset
-'''
 
 
 class Model(Model):
@@ -122,91 +112,59 @@ plt.xlabel(r"$JD$")
 plt.show()
 #yerr    = [(yerr[i]**2 + 7**2)**0.5 for i in range(len(RV_SORT))]
 
-#==============================================================================
-# Modelling correlated noise
-#==============================================================================
 
-import celerite
-celerite.__version__
-from celerite import terms
-
-# bounds = dict(P=(350,400), k=(100,300), w=(-2*np.pi, 2*np.pi), e0=(0.8, 0.95), offset=(-100,100))
-# bounds = dict(log_S0 = (0,2), log_Q=(0,2), log_omega0=(0,2), P=(350,400), k=(100,300), w=(-2*np.pi, 2*np.pi), e0=(0.8, 0.95), offset=(-100,100))
-# bounds[3] = (350,400)
-# bounds[4] = (0, 10000)
-# bounds[5] = (100,300)
-# bounds[6] = (-2*np.pi, 2*np.pi)
-# bounds[7] = (0.8, 0.95)
-# bounds[8] = (-100,100)
-
-kernel  = terms.SHOTerm(np.log(2), np.log(2), np.log(5))
-# kernel  = terms.SHOTerm(np.log(2), np.log(2), np.log(5), 415.4, 4867, 186.8, 0, 0.856, 0, bounds=bounds)
-# mean: An object (following the modeling protocol) that specifies the mean function of the GP.
-gp  = celerite.GP(kernel, mean=Model(**truth), fit_mean = True)
-
-# compute(x, yerr=0.0, **kwargs). Pre-compute the covariance matrix and factorize it for a set of times and uncertainties.
-gp.compute(t, yerr)                                                             
+x = np.array(t)
+         
 
 
+# MCMC
 
+# Define the posterior PDF
+# Reminder: post_pdf(theta, data) = likelihood(data, theta) * prior_pdf(theta)
+# We take the logarithm since emcee needs it.
 
+# As prior, we assume an 'uniform' prior (i.e. constant prob. density)
 
-####################################################################
+def lnprior(theta):
+    P, tau, k, w, e0, offset = theta
+    if (350 < P < 450) and (100 < k < 300) and (-np.pi < w < np.pi) and (0.7 < e0 < 0.99):
+        return 0.0
+    return -np.inf
 
-if 0:
+# As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
+def lnlike(theta, x, y, yerr):
+    P, tau, k, w, e0, offset = theta
+    fit_curve   = Model(P=P, tau=tau, k=k, w=w, e0=e0, offset=offset)
+    y_fit       = fit_curve.get_value(np.array(x))
+    return -0.5*(np.sum( ((y-y_fit)/yerr)**2. ))
 
-    from scipy.optimize import minimize
-
-    def neg_log_like(params, y, gp):
-        gp.set_parameter_vector(params)
-        return -gp.log_likelihood(y)
-
-    initial_params = gp.get_parameter_vector()
-    r = minimize(neg_log_like, initial_params, method="L-BFGS-B", bounds=bounds, args=(y, gp))
-
-####################################################################
-
-
-#==============================================================================
-# Test  1
-#==============================================================================
-
-if 0: 
-
-    kwargs = dict(**truth)
-    kwargs["bounds"] = dict(location=(-2, 2))
-    mean_model = Model(**kwargs)
-    gp = george.GP(np.var(y) * kernels.Matern32Kernel(10.0), mean=mean_model)
-    gp.compute(t, yerr)
-    #####
-
-    def lnprob2(p):
-        
-        print(p)
-        # Set the parameter values to the given vector
-        gp.set_parameter_vector(p)                                                  
-
-        # Compute the logarithm of the marginalized likelihood of a set of observations under the Gaussian process model. 
-        return gp.log_likelihood(y, quiet=True) + gp.log_prior()                    
-
-
-
-#==============================================================================
-# Test 2
-#==============================================================================
-
-def lnprob2(p):
-    
-    # Trivial uniform prior.
-    if ((0.7 > p[7]) or (p[7] > 0.99) or (p[3]>450) or (p[3]<350) or (p[5]<100) or (p[5]>300) or (p[6]<-np.pi) or (p[6]>np.pi)):
-        print(p)
+def lnprob(theta, x, y):
+    lp = lnprior(theta)
+    if not np.isfinite(lp):
         return -np.inf
+    return lp + lnlike(theta, x, y, yerr)    
 
-    # Update the kernel and compute the lnlikelihood.
-    gp.set_parameter_vector(p)
-    return gp.log_likelihood(y, quiet=True) + gp.log_prior()
 
-##################
+
+
+import emcee
+ndim = 6
+nwalkers = 32
+sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y), threads=14)
+pos = [[400, 4000., 200., 0, 0.8, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+
+
+
+import time
+time0 = time.time()
+# burnin phase
+pos, prob, state  = sampler.run_mcmc(pos, 20000)
+
+samples = sampler.chain[:, 500:, :].reshape((-1, ndim))
+
+import corner
+fig = corner.corner(samples, labels=["$P$", "$tau$", "$k$", "$w$", "$e0$", "$offset$"])
+plt.show()
 
 
 #==============================================================================
