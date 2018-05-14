@@ -57,8 +57,6 @@ if 1:   # Comparison
     plt.xlabel(r"$RV_{IN} [m/s]$")
     plt.legend()
     plt.savefig('2-Comparison.png')
-    # plt.show()
-
 
 
 
@@ -68,12 +66,13 @@ if 1:   # Comparison
 
 import time
 time0   = time.time()
+
+# each data is equally weighted 
 yerr    = 1 + np.zeros(RV_IN.shape)
-# yerr = RV_diff + 0.05
 
 def lnprior2(theta2):
     a2, k2, phi2, b2 = theta2
-    if (0.1 < a2 < 10) and (0 < k2 < 10) and (-2*np.pi < phi2 < 2*np.pi) and (-10. < b2 < 10):
+    if (0. < a2 < 10) and (0 < k2 < 10) and (-2*np.pi < phi2 < 2*np.pi) and (-10. < b2 < 10):
         return 0.0
     return -np.inf
 
@@ -120,7 +119,6 @@ import corner
 fig = corner.corner(samples2, labels=["$a$", "$k$", "$phi$", "$b$"], truths=[4, 2.8, 1.0, 0.0137],
                     quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
 plt.savefig('3-MCMC2.png')
-# plt.show()
 
 
 a2, k2, phi2, b2 = map(lambda v: np.array((v[1], v[2]-v[1], v[1]-v[0])), zip(*np.percentile(samples2, [16, 50, 84], axis=0)))
@@ -166,7 +164,7 @@ plt.close('all')
 
 def lnprior(theta):
     a, k, phi, b = theta
-    if (0.1 < a < 10) and (0 < k < 10) and (-2*np.pi < phi < 2*np.pi) and (-3. < b < 3):
+    if (0. < a < 10) and (0 < k < 10) and (-2*np.pi < phi < 2*np.pi) and (-3. < b < 3):
     # a, k, phi, m, b = theta
     # if (0.1 < a < 10) and (0 < k < 10) and (-np.pi < phi < np.pi) and (0.7 < m < 0.8) and (-3. < b < 3):
         return 0.0
@@ -215,7 +213,7 @@ if 1:
 
 print("Running production...")
 sampler.run_mcmc(pos, 2000);
-samples = sampler.chain[:, 1000:, :].reshape((-1, ndim))
+samples = sampler.chain[:, 500:, :].reshape((-1, ndim))
 
 
 # fig = corner.corner(samples, labels=["$a$", "$k$", "$phi$", "$m$", "$b$"], truths=[4, 7, 1.0, 0.72, 0.0137],
@@ -231,6 +229,7 @@ print(np.vstack((a, k, phi, b)))
 # a, k, phi, m, b = map(lambda v: np.array((v[1], v[2]-v[1], v[1]-v[0])), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
 # print(np.vstack((a, k, phi, m, b)))
 
+
 m = [0.72]
 fig = plt.figure()
 RV_diff0    = RV_IN0 - RV_FT0
@@ -242,7 +241,6 @@ plt.plot(x, Jitter_in - np.mean(Jitter_in), '*', label='Jitter_in')
 plt.plot(t, Jitter_pos0 - np.mean(Jitter_pos0), '-', label='Jitter_pos')
 plt.legend()
 plt.savefig('4-Jitter_correction.png')
-# plt.show()
 
 
 fig = plt.figure()
@@ -268,7 +266,6 @@ plt.ylabel(r"$residual [m/s]$")
 plt.legend()
 plt.savefig('5-Fit.png')
 plt.close('all')
-# plt.show()
 
 
 time1=time.time()
