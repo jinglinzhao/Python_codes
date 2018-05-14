@@ -6,6 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
+# mode    = 4; 
+mode    = 5;
 
 ################
 # Present data #
@@ -24,6 +26,7 @@ x_start = np.sort(random.sample(range(95), N_night))
 x       = np.hstack([i + np.sort(random.sample(range(6), random.randint(1, 5))) for i in x_start])
 x       = np.unique(x)
 n_obs   = np.size(x)
+print('Observation samples:')
 print(x)
 # x       = np.sort(random.sample(range(100), 30))
 RV_IN   = np.array([RV_IN0[i] for i in x])
@@ -64,8 +67,11 @@ if 1:   # Comparison
 # MCMC without jitter correction #
 ##################################
 
+
 import time
 time0   = time.time()
+
+print('# MCMC without jitter correction #')
 
 # each data is equally weighted 
 yerr    = 1 + np.zeros(RV_IN.shape)
@@ -151,9 +157,9 @@ plt.close('all')
 
 
 
-###############################
-# MCMC with jitter correction #
-###############################
+#############################################
+# MCMC with jitter correction (4 parameters)#
+#############################################
 
 # Define the posterior PDF
 # Reminder: post_pdf(theta, data) = likelihood(data, theta) * prior_pdf(theta)
@@ -161,76 +167,131 @@ plt.close('all')
 
 # As prior, we assume an 'uniform' prior (i.e. constant prob. density)
 
+if (mode == 4):
+    print('# MCMC with jitter correction (4 parameters)#')
 
-def lnprior(theta):
-    a, k, phi, b = theta
-    if (0. < a < 10) and (0 < k < 10) and (-2*np.pi < phi < 2*np.pi) and (-3. < b < 3):
-    # a, k, phi, m, b = theta
-    # if (0.1 < a < 10) and (0 < k < 10) and (-np.pi < phi < np.pi) and (0.7 < m < 0.8) and (-3. < b < 3):
-        return 0.0
-    return -np.inf
-
-# As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
-def lnlike(theta, x, y, yerr):
-    # a, k, phi, m, b = theta
-    # model = a * np.sin(x/100. * k * 2. * np.pi + phi) + (RV_diff + b)/(1-m)
-    a, k, phi, b = theta
-    m = 0.72
-    model = a * np.sin(x/100. * k * 2. * np.pi + phi) + (RV_diff + b)/(1-m)    
-    # a, phi, m, b = theta
-    # model = a * np.sin(x/100. * 7. * 2. * np.pi + phi) * (1-m) + b  + m * np.asarray(RV_IN)
-    # model =  -a * np.sin(x/100. * k * 2. * np.pi + phi) * (1-m)/m + b  + np.asarray(RV_FT)/m
-    # print(model)
-    return -0.5*(np.sum( ((y-model)/yerr)**2. ))
-
-def lnprob(theta, x, y):
-    lp = lnprior(theta)
-    if not np.isfinite(lp):
+    def lnprior(theta):
+        a, k, phi, b = theta
+        if (0. < a < 10) and (0 < k < 10) and (-2*np.pi < phi < 2*np.pi) and (-3. < b < 3):
+            return 0.0
         return -np.inf
-    return lp + lnlike(theta, x, y, yerr)    
+
+    # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
+    def lnlike(theta, x, y, yerr):
+        a, k, phi, b = theta
+        m = 0.72
+        model = a * np.sin(x/100. * k * 2. * np.pi + phi) + (RV_diff + b)/(1-m)    
+        return -0.5*(np.sum( ((y-model)/yerr)**2. ))
+
+    def lnprob(theta, x, y):
+        lp = lnprior(theta)
+        if not np.isfinite(lp):
+            return -np.inf
+        return lp + lnlike(theta, x, y, yerr)    
 
 
-import emcee
-# ndim    = 5
-ndim    = 4
-nwalkers = 32
-sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, RV_IN))
-pos     = [[(max(RV_IN)-min(RV_IN))/2, 5, 1., 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
-# pos     = [[(max(RV_IN)-min(RV_IN))/2, 5, 1., 0.75, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+    import emcee
+    ndim    = 4
+    nwalkers = 32
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, RV_IN))
+    pos     = [[(max(RV_IN)-min(RV_IN))/2, 5, 1., 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
 
 
-print("Running first burn-in...")
-pos, prob, state  = sampler.run_mcmc(pos, 3000)
-sampler.reset()
-# fig1 = corner.corner(samples, labels=["$a$", "$k$", "$phi$", "$m$", "$b$"])
-
-if 1:
-    print("Running second burn-in...")
-    pos = [pos[np.argmax(prob)] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+    print("Running first burn-in...")
     pos, prob, state  = sampler.run_mcmc(pos, 3000)
     sampler.reset()
+    # fig1 = corner.corner(samples, labels=["$a$", "$k$", "$phi$", "$m$", "$b$"])
+
+    if 1:
+        print("Running second burn-in...")
+        pos = [pos[np.argmax(prob)] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+        pos, prob, state  = sampler.run_mcmc(pos, 3000)
+        sampler.reset()
 
 
-print("Running production...")
-sampler.run_mcmc(pos, 2000);
-samples = sampler.chain[:, 500:, :].reshape((-1, ndim))
+    print("Running production...")
+    sampler.run_mcmc(pos, 2000);
+    samples = sampler.chain[:, 500:, :].reshape((-1, ndim))
 
 
-# fig = corner.corner(samples, labels=["$a$", "$k$", "$phi$", "$m$", "$b$"], truths=[4, 7, 1.0, 0.72, 0.0137],
-#         quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
-fig = corner.corner(samples, labels=["$a$", "$k$", "$phi$", "$b$"], truths=[4, 2.8, 1.0, 0.0137],
-        quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
-plt.savefig('3-MCMC1.png')
-# plt.show()
+    fig = corner.corner(samples, labels=["$a$", "$k$", "$phi$", "$b$"], truths=[4, 2.8, 1.0, 0.0137],
+            quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
+    plt.savefig('3-MCMC1.png')
 
 
-a, k, phi, b = map(lambda v: np.array((v[1], v[2]-v[1], v[1]-v[0])), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
-print(np.vstack((a, k, phi, b)))
-# a, k, phi, m, b = map(lambda v: np.array((v[1], v[2]-v[1], v[1]-v[0])), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
-# print(np.vstack((a, k, phi, m, b)))
+    a, k, phi, b = map(lambda v: np.array((v[1], v[2]-v[1], v[1]-v[0])), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
+    print(np.vstack((a, k, phi, b)))
+
+    m = [0.72]
 
 
-m = [0.72]
+
+#############################################
+# MCMC with jitter correction (5 parameters)#
+#############################################
+
+if (mode == 5):
+    print('# MCMC with jitter correction (5 parameters)#')
+
+    def lnprior(theta):
+        a, k, phi, m, b = theta
+        if (0. < a < 10) and (0 < k < 10) and (-2*np.pi < phi < 2*np.pi) and (0.65 < m < 0.85) and (-3. < b < 3):
+            return 0.0
+        return -np.inf
+
+    # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
+    def lnlike(theta, x, y, yerr):
+        a, k, phi, m, b = theta
+        model = a * np.sin(x/100. * k * 2. * np.pi + phi) + (RV_diff + b)/(1-m)
+        # model = a * np.sin(x/100. * 7. * 2. * np.pi + phi) * (1-m) + b  + m * np.asarray(RV_IN)
+        # model =  -a * np.sin(x/100. * k * 2. * np.pi + phi) * (1-m)/m + b  + np.asarray(RV_FT)/m
+        return -0.5*(np.sum( ((y-model)/yerr)**2. ))
+
+    def lnprob(theta, x, y):
+        lp = lnprior(theta)
+        if not np.isfinite(lp):
+            return -np.inf
+        return lp + lnlike(theta, x, y, yerr)    
+
+
+    import emcee
+    ndim    = 5
+    nwalkers = 32
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, RV_IN))
+    pos     = [[(max(RV_IN)-min(RV_IN))/2, 5, 1., 0.75, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+
+
+    print("Running first burn-in...")
+    pos, prob, state  = sampler.run_mcmc(pos, 3000)
+    sampler.reset()
+    # fig1 = corner.corner(samples, labels=["$a$", "$k$", "$phi$", "$m$", "$b$"])
+
+    if 1:
+        print("Running second burn-in...")
+        pos = [pos[np.argmax(prob)] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+        pos, prob, state  = sampler.run_mcmc(pos, 3000)
+        sampler.reset()
+
+
+    print("Running production...")
+    sampler.run_mcmc(pos, 2000);
+    samples = sampler.chain[:, 500:, :].reshape((-1, ndim))
+
+
+    fig = corner.corner(samples, labels=["$a$", "$k$", "$phi$", "$m$", "$b$"], truths=[4, 7, 1.0, 0.72, 0.0137],
+            quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
+    plt.savefig('3-MCMC1.png')
+
+
+    a, k, phi, m, b = map(lambda v: np.array((v[1], v[2]-v[1], v[1]-v[0])), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
+    print(np.vstack((a, k, phi, m, b)))
+
+
+
+###############
+# Final Plots # 
+###############
+
 fig = plt.figure()
 RV_diff0    = RV_IN0 - RV_FT0
 Jitter_pos0 = (RV_diff0 + b[0]) / (1-m[0]) 
@@ -268,8 +329,8 @@ plt.savefig('5-Fit.png')
 plt.close('all')
 
 
-time1=time.time()
-print(time1-time0)
+time1 = time.time()
+print('\nRuntime = %.2f seconds' %(time1 - time0))
 
 
 if 0:
