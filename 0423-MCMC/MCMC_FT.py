@@ -18,7 +18,7 @@ RV_FT0  = np.loadtxt('RV_FT.txt')
 RV_jitter   = np.loadtxt('RV_jitter.dat')
 
 # re-sample
-N_night = 5
+N_night = 8
 x_start = np.sort(random.sample(range(95), N_night))
 
 x       = np.hstack([i + np.sort(random.sample(range(6), random.randint(1, 5))) for i in x_start])
@@ -73,7 +73,7 @@ yerr    = 1 + np.zeros(RV_IN.shape)
 
 def lnprior2(theta2):
     a2, k2, phi2, b2 = theta2
-    if (0.1 < a2 < 10) and (0 < k2 < 10) and (0.001 < phi2 < 2*np.pi) and (-10. < b2 < 10):
+    if (0.1 < a2 < 10) and (0 < k2 < 10) and (-2*np.pi < phi2 < 2*np.pi) and (-10. < b2 < 10):
         return 0.0
     return -np.inf
 
@@ -95,7 +95,7 @@ import emcee
 ndim    = 4
 nwalkers = 32
 sampler2 = emcee.EnsembleSampler(nwalkers, ndim, lnprob2, args=(x, RV_IN))
-pos2     = [[0.8, 5., 1., 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+pos2     = [[(max(RV_IN)-min(RV_IN))/2, 5., 1., 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
 
 
 print("Running first burn-in...")
@@ -116,9 +116,9 @@ sampler2.run_mcmc(pos2, 2000);
 samples2 = sampler2.chain[:, 500:, :].reshape((-1, ndim))
 
 
-
-fig = corner.corner(samples2, labels=["$a$", "$k$", "$phi$", "$b$"],
-        truths=[4, 7, 1.0, 0.0137])
+import corner
+fig = corner.corner(samples2, labels=["$a$", "$k$", "$phi$", "$b$"], truths=[4, 2.8, 1.0, 0.0137],
+                    quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
 plt.savefig('3-MCMC2.png')
 # plt.show()
 
@@ -165,18 +165,21 @@ plt.close('all')
 
 
 def lnprior(theta):
-    a, k, phi, m, b = theta
-    # a, phi, m, b = theta
-    # if (0 < a < 5.0) and (0.0 < phi < 2*np.pi) and (0 < m < 1) and (-10.0 < b < 10.0):
-    if (0.1 < a < 10) and (0 < k < 10) and (0.001 < phi < np.pi) and (0.5 < m < 1) and (-3. < b < 3):
+    a, k, phi, b = theta
+    if (0.1 < a < 10) and (0 < k < 10) and (-2*np.pi < phi < 2*np.pi) and (-3. < b < 3):
+    # a, k, phi, m, b = theta
+    # if (0.1 < a < 10) and (0 < k < 10) and (-np.pi < phi < np.pi) and (0.7 < m < 0.8) and (-3. < b < 3):
         return 0.0
     return -np.inf
 
 # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
 def lnlike(theta, x, y, yerr):
-    a, k, phi, m, b = theta
+    # a, k, phi, m, b = theta
+    # model = a * np.sin(x/100. * k * 2. * np.pi + phi) + (RV_diff + b)/(1-m)
+    a, k, phi, b = theta
+    m = 0.72
+    model = a * np.sin(x/100. * k * 2. * np.pi + phi) + (RV_diff + b)/(1-m)    
     # a, phi, m, b = theta
-    model = a * np.sin(x/100. * k * 2. * np.pi + phi) + (RV_diff + b)/(1-m)
     # model = a * np.sin(x/100. * 7. * 2. * np.pi + phi) * (1-m) + b  + m * np.asarray(RV_IN)
     # model =  -a * np.sin(x/100. * k * 2. * np.pi + phi) * (1-m)/m + b  + np.asarray(RV_FT)/m
     # print(model)
@@ -190,10 +193,12 @@ def lnprob(theta, x, y):
 
 
 import emcee
-ndim    = 5
+# ndim    = 5
+ndim    = 4
 nwalkers = 32
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, RV_IN))
-pos     = [[a2[0], k2[0], 1., 0.8, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+pos     = [[(max(RV_IN)-min(RV_IN))/2, 5, 1., 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+# pos     = [[(max(RV_IN)-min(RV_IN))/2, 5, 1., 0.75, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
 
 
 print("Running first burn-in...")
@@ -213,17 +218,20 @@ sampler.run_mcmc(pos, 2000);
 samples = sampler.chain[:, 1000:, :].reshape((-1, ndim))
 
 
-import corner
-fig = corner.corner(samples, labels=["$a$", "$k$", "$phi$", "$m$", "$b$"],
-        truths=[4, 7, 1.0, 0.74, 0.0137])
+# fig = corner.corner(samples, labels=["$a$", "$k$", "$phi$", "$m$", "$b$"], truths=[4, 7, 1.0, 0.72, 0.0137],
+#         quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
+fig = corner.corner(samples, labels=["$a$", "$k$", "$phi$", "$b$"], truths=[4, 2.8, 1.0, 0.0137],
+        quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
 plt.savefig('3-MCMC1.png')
 # plt.show()
 
 
-a, k, phi, m, b = map(lambda v: np.array((v[1], v[2]-v[1], v[1]-v[0])), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
-print(np.vstack((a, k, phi, m, b)))
+a, k, phi, b = map(lambda v: np.array((v[1], v[2]-v[1], v[1]-v[0])), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
+print(np.vstack((a, k, phi, b)))
+# a, k, phi, m, b = map(lambda v: np.array((v[1], v[2]-v[1], v[1]-v[0])), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
+# print(np.vstack((a, k, phi, m, b)))
 
-
+m = [0.72]
 fig = plt.figure()
 RV_diff0    = RV_IN0 - RV_FT0
 Jitter_pos0 = (RV_diff0 + b[0]) / (1-m[0]) 
@@ -259,6 +267,7 @@ plt.xlabel(r"$t$")
 plt.ylabel(r"$residual [m/s]$")
 plt.legend()
 plt.savefig('5-Fit.png')
+plt.close('all')
 # plt.show()
 
 
