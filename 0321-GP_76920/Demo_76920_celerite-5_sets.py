@@ -6,15 +6,14 @@ Based on Demo_76920_celerite.py
 Introduce individual offsets 
 '''
 
-import numpy as np
 import matplotlib.pyplot as plt
 
 
 #==============================================================================
 # Import data 
 #==============================================================================
+import numpy as np
 
-# all_rvs 	= np.genfromtxt('all_rvs.dat', dtype = None)
 all_rvs 	= np.genfromtxt('all_rvs_1outlier_removed.dat', dtype = None)
 
 DATA_AAT 	= [all_rvs[k] for k in range(len(all_rvs)) if all_rvs[k][3] == b'AAT']
@@ -45,32 +44,15 @@ for k in range(len(DATA_AAT)):
 
 for k in range(len(DATA_CHIRON)):
 	RV_CHIRON[k, :]	= [ DATA_CHIRON[k][i] for i in range(3) ]
-	RV_CHIRON[k, 1] = RV_CHIRON[k, 1] - OFFSET_CHIRON
 
 for k in range(len(DATA_FEROS)):
 	RV_FEROS[k, :]	= [ DATA_FEROS[k][i] for i in range(3) ]
-	RV_FEROS[k, 1] 	= RV_FEROS[k, 1] - OFFSET_FEROS
 
 for k in range(len(DATA_MJ1)):
 	RV_MJ1[k, :]	= [ DATA_MJ1[k][i] for i in range(3) ]
-	RV_MJ1[k, 1] 	= RV_MJ1[k, 1] - OFFSET_MJ1
 
 for k in range(len(DATA_MJ3)):
 	RV_MJ3[k, :]	= [ DATA_MJ3[k][i] for i in range(3) ]
-	RV_MJ3[k, 1] 	= RV_MJ3[k, 1] - OFFSET_MJ3
-
-
-if 1:
-    plt.errorbar(RV_AAT[:,0], 	RV_AAT[:,1], 	yerr=RV_AAT[:,2], 	fmt=".", capsize=0, label='AAT')
-    plt.errorbar(RV_CHIRON[:,0],RV_CHIRON[:,1], yerr=RV_CHIRON[:,2],fmt=".", capsize=0, label='CHIRON')
-    plt.errorbar(RV_FEROS[:,0], RV_FEROS[:,1], 	yerr=RV_FEROS[:,2], fmt=".", capsize=0, label='FEROS')
-    plt.errorbar(RV_MJ1[:,0], 	RV_MJ1[:,1], 	yerr=RV_MJ1[:,2], 	fmt=".", capsize=0, label='MJ1')
-    plt.errorbar(RV_MJ3[:,0], 	RV_MJ3[:,1], 	yerr=RV_MJ3[:,2], 	fmt=".", capsize=0, label='MJ3')
-    plt.ylabel(r"$RV [m/s]$")
-    plt.xlabel(r"$JD$")
-    plt.title("Adjusted RV time series")
-    plt.legend()
-    plt.show()
 
 
 # Concatenate the five data sets # 
@@ -79,7 +61,6 @@ RV_SORT = sorted(RV_ALL, key=lambda x: x[0])
 t       = [RV_SORT[i][0] for i in range(len(RV_SORT))]
 y       = [RV_SORT[i][1] for i in range(len(RV_SORT))]
 yerr    = [RV_SORT[i][2] for i in range(len(RV_SORT))]
-#yerr    = [(yerr[i]**2 + 7**2)**0.5 for i in range(len(RV_SORT))]
 
 
 #==============================================================================
@@ -97,12 +78,10 @@ class Model(Model):
     parameter_names = ('P', 'tau', 'k', 'w', 'e0', 'off_aat', 'off_chiron', 'off_feros', 'off_mj1', 'off_mj3')
 
     def get_value(self, t):
-        # print('**************************')
-        # print(t.flatten())
-        M_anom  = 2*np.pi/self.P * (t.flatten() - self.tau)
+        M_anom  = 2*np.pi/np.exp(self.P) * (t.flatten() - np.exp(self.tau))
         e_anom  = solve_kep_eqn(M_anom, self.e0)
         f       = 2*np.arctan( np.sqrt((1+self.e0)/(1-self.e0))*np.tan(e_anom*.5) )
-        rv      = self.k*(np.cos(f + self.w) + self.e0*np.cos(self.w))
+        rv      = np.exp(self.k)*(np.cos(f + self.w) + self.e0*np.cos(self.w))
 
         offset = np.zeros(len(t))
         for i in range(len(t)):
@@ -117,26 +96,12 @@ class Model(Model):
             if t[i] in RV_MJ3[:,0]:
                 offset[i] = self.off_mj3             
 
-        return rv + offset
+        return rv + 100*offset
 
-'''
-        if t.flatten() in RV_AAT[:,0]:
-            return rv + self.off_aat
-        if t.flatten() in RV_CHIRON[:,0]:
-            return rv + self.off_chiron
-        if t.flatten() in RV_FEROS[:,0]:
-            return rv + self.off_feros           
-        if t.flatten() in RV_MJ1[:,0]:
-            return rv + self.off_mj1
-        if t.flatten() in RV_MJ3[:,0]:
-            return rv + self.off_mj3
-
-        for i in range(len(t))
-'''
 
 # The dict() constructor builds dictionaries directly from sequences of key-value pairs:
-# might consider using log scale
-truth   = dict(P=415.4, tau=4812, k=186.8, w=-0.06, e0=0.88, off_aat=0, off_chiron=0, off_feros=0, off_mj1=0, off_mj3=0)        
+truth   = dict(log_P=np.log(415.9), log_tau=np.log(4812), log_k=np.log(186.8), w=-0.06, e0=0.856,
+                off_aat=0, off_chiron=0, off_feros=0, off_mj1=0, off_mj3=0)
 
 kernel  = terms.SHOTerm(np.log(2), np.log(2), np.log(5))
 
@@ -261,6 +226,16 @@ np.savetxt('fit_parameter.txt', aa, fmt='%.6f')
 
 
 
-
+if 1:
+    plt.errorbar(RV_AAT[:,0],   RV_AAT[:,1],    yerr=RV_AAT[:,2],   fmt=".", capsize=0, label='AAT')
+    plt.errorbar(RV_CHIRON[:,0],RV_CHIRON[:,1], yerr=RV_CHIRON[:,2],fmt=".", capsize=0, label='CHIRON')
+    plt.errorbar(RV_FEROS[:,0], RV_FEROS[:,1],  yerr=RV_FEROS[:,2], fmt=".", capsize=0, label='FEROS')
+    plt.errorbar(RV_MJ1[:,0],   RV_MJ1[:,1],    yerr=RV_MJ1[:,2],   fmt=".", capsize=0, label='MJ1')
+    plt.errorbar(RV_MJ3[:,0],   RV_MJ3[:,1],    yerr=RV_MJ3[:,2],   fmt=".", capsize=0, label='MJ3')
+    plt.ylabel(r"$RV [m/s]$")
+    plt.xlabel(r"$JD$")
+    plt.title("Adjusted RV time series")
+    plt.legend()
+    plt.show()
 
 

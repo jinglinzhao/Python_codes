@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 '''
 Based on Demo_76920_celerite.py.
 Change to celerite
@@ -20,29 +17,24 @@ class Model(Model):
     parameter_names = ('P', 'tau', 'k', 'w', 'e0', 'offset')
 
     def get_value(self, t):
-        M_anom  = 2*np.pi/self.P * (t.flatten() - self.tau)
-        # print(M_anom)
+        M_anom  = 2*np.pi/np.exp(self.P) * (t.flatten() - np.exp(self.tau))
         e_anom  = solve_kep_eqn(M_anom, self.e0)
-        # print(self.e0)
         f       = 2*np.arctan( np.sqrt((1+self.e0)/(1-self.e0))*np.tan(e_anom*.5) )
-        return self.k*(np.cos(f + self.w) + self.e0*np.cos(self.w)) + self.offset
-
-# bounds = dict(P=(350.,450.), tau=(4000.,5000.), k=(100.,300.), w=(-2*np.pi, 2*np.pi), e0=(0.8, 0.95), offset=(-100.,100.))
+        return np.exp(self.k)*(np.cos(f + self.w) + self.e0*np.cos(self.w)) - self.offset
 
 
 # The dict() constructor builds dictionaries directly from sequences of key-value pairs:
-#truth = dict(amp=-2.0, location=0.1, log_sigma2=np.log(0.4))             
-# might consider using log scale
-truth 	= dict(P=415.9, tau=4812, k=186.8, w=-0.06, e0=0.856, offset=0)        
-
+truth 	= dict(log_P=np.log(415.9), log_tau=np.log(4812), log_k=np.log(186.8), w=-0.06, e0=0.856, offset=0)        
 
 
 #==============================================================================
 # Import data 
 #==============================================================================
 
-# all_rvs 	= np.genfromtxt('all_rvs.dat', dtype = None)
 all_rvs 	= np.genfromtxt('all_rvs_1outlier_removed.dat', dtype = None)
+
+for i in range(len(all_rvs)):
+    all_rvs[i][2]     = (all_rvs[i][2]**2 + 7**2)**0.5 
 
 DATA_AAT 	= [all_rvs[k] for k in range(len(all_rvs)) if all_rvs[k][3] == b'AAT']
 DATA_CHIRON = [all_rvs[k] for k in range(len(all_rvs)) if all_rvs[k][3] == b'CHIRON']
@@ -87,38 +79,18 @@ for k in range(len(DATA_MJ3)):
 	RV_MJ3[k, 1] 	= RV_MJ3[k, 1] - OFFSET_MJ3
 
 
-if 1:
-    plt.errorbar(RV_AAT[:,0], 	RV_AAT[:,1], 	yerr=RV_AAT[:,2], 	fmt=".", capsize=0, label='AAT')
-    plt.errorbar(RV_CHIRON[:,0],RV_CHIRON[:,1], yerr=RV_CHIRON[:,2],fmt=".", capsize=0, label='CHIRON')
-    plt.errorbar(RV_FEROS[:,0], RV_FEROS[:,1], 	yerr=RV_FEROS[:,2], fmt=".", capsize=0, label='FEROS')
-    plt.errorbar(RV_MJ1[:,0], 	RV_MJ1[:,1], 	yerr=RV_MJ1[:,2], 	fmt=".", capsize=0, label='MJ1')
-    plt.errorbar(RV_MJ3[:,0], 	RV_MJ3[:,1], 	yerr=RV_MJ3[:,2], 	fmt=".", capsize=0, label='MJ3')
-    plt.ylabel(r"$RV [m/s]$")
-    plt.xlabel(r"$JD$")
-    plt.title("Adjusted RV time series")
-    plt.legend()
-    # plt.show()
-
 
 # Concatenate the five data sets # 
 RV_ALL  = np.concatenate((RV_AAT, RV_CHIRON, RV_FEROS, RV_MJ1, RV_MJ3))
 RV_SORT = sorted(RV_ALL, key=lambda x: x[0])
-t       = [RV_SORT[i][0] for i in range(len(RV_SORT))]
+x       = [RV_SORT[i][0] for i in range(len(RV_SORT))]
 y       = [RV_SORT[i][1] for i in range(len(RV_SORT))]
 yerr    = [RV_SORT[i][2] for i in range(len(RV_SORT))]
-plt.errorbar(t, y, yerr=yerr, fmt=".")
-plt.ylabel(r"$RV [m/s]$")
-plt.xlabel(r"$JD$")
-plt.show()
-#yerr    = [(yerr[i]**2 + 7**2)**0.5 for i in range(len(RV_SORT))]
 
 
-x = np.array(t)
-         
-
-
+#==============================================================================
 # MCMC
-
+#==============================================================================
 # Define the posterior PDF
 # Reminder: post_pdf(theta, data) = likelihood(data, theta) * prior_pdf(theta)
 # We take the logarithm since emcee needs it.
@@ -127,7 +99,8 @@ x = np.array(t)
 
 def lnprior(theta):
     P, tau, k, w, e0, offset = theta
-    if (350 < P < 450) and (100 < k < 300) and (-np.pi < w < np.pi) and (0.7 < e0 < 0.99):
+    # if (350 < P < 450) and (100 < k < 300) and (-np.pi < w < np.pi) and (0.7 < e0 < 0.99):
+    if (5.8 < P < 6.1) and (4.6 < k < 5.7) and (-np.pi < w < np.pi) and (0.7 < e0 < 0.99):
         return 0.0
     return -np.inf
 
@@ -138,7 +111,7 @@ def lnlike(theta, x, y, yerr):
     y_fit       = fit_curve.get_value(np.array(x))
     return -0.5*(np.sum( ((y-y_fit)/yerr)**2. ))
 
-def lnprob(theta, x, y):
+def lnprob(theta, x, y, yerr):
     lp = lnprior(theta)
     if not np.isfinite(lp):
         return -np.inf
@@ -146,137 +119,112 @@ def lnprob(theta, x, y):
 
 
 
-
 import emcee
 ndim = 6
 nwalkers = 32
-sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y), threads=14)
-pos = [[400, 4000., 200., 0, 0.8, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
-
-
-
-import time
-time0 = time.time()
-# burnin phase
-pos, prob, state  = sampler.run_mcmc(pos, 20000)
-
-samples = sampler.chain[:, 500:, :].reshape((-1, ndim))
-
-import corner
-fig = corner.corner(samples, labels=["$P$", "$tau$", "$k$", "$w$", "$e0$", "$offset$"])
-plt.show()
-
-
-#==============================================================================
-# run MCMC on this model
-#==============================================================================
-
-import emcee
-
-# Get an array of the parameter values in the correct order. len(initial) = 5. 
-initial = gp.get_parameter_vector()                                             
-ndim, nwalkers = len(initial), 32
-sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob2)
+sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y, yerr), threads=14)
 
 print("Running first burn-in...")
-p0 = initial + 1e-8 * np.random.randn(nwalkers, ndim)
-p0, lp, _ = sampler.run_mcmc(p0, 2000)
-# p0, lp, _ = sampler.run_mcmc(p0, 2000)
-
+pos = [[6., 8.5, 5.3, 0, 0.8, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+pos, prob, state  = sampler.run_mcmc(pos, 1000)
 
 print("Running second burn-in...")
-p0 = p0[np.argmax(lp)] + 1e-8 * np.random.randn(nwalkers, ndim)
+pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
 sampler.reset()
-p0, _, _ = sampler.run_mcmc(p0, 2000)
+pos, _, _ = sampler.run_mcmc(pos, 1000)
 sampler.reset()
 
 print("Running production...")
-sampler.run_mcmc(p0, 1000);
+sampler.run_mcmc(pos, 10000);
 
 
-
-#==============================================================================
-# plot the posterior samples on top of the data
-#==============================================================================
-# Plot the data.
-
-plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
-
-# The positions where the prediction should be computed.
-x = np.linspace(min(RV_ALL[:,0]), max(RV_ALL[:,0]), num=1000, endpoint=True)
-
-# Plot 24 posterior samples.
-samples = sampler.flatchain
-for s in samples[np.random.randint(len(samples), size=24)]:
-    gp.set_parameter_vector(s)
-    mu = gp.sample_conditional(y, x)
-    plt.plot(x, mu, color="#4682b4", alpha=0.3)
-
-plt.ylabel(r"$y$")
-plt.xlabel(r"$t$")
-#plt.xlim(-5, 5)
-plt.title("fit with GP noise model");
-plt.show()
+import copy
+log_samples         = sampler.chain[:, :, :].reshape((-1, ndim))
+real_samples        = copy.copy(log_samples)
+real_samples[:,0:3] = np.exp(real_samples[:,0:3])
 
 
-x = np.linspace(min(RV_ALL[:,0]), max(RV_ALL[:,0]), num=10000, endpoint=True)
-pred_mean, pred_var = gp.predict(y, x, return_var=True)
-pred_std = np.sqrt(pred_var)
-
-color = "#ff7f0e"
-plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
-plt.plot(x, pred_mean, color=color)
-plt.fill_between(x, pred_mean+pred_std, pred_mean-pred_std, color=color, alpha=0.3,
-                 edgecolor="none")
-plt.show()
-
-
-
-#==============================================================================
-# Corner plots
-#==============================================================================
 import corner
-
-tri_cols = ['P', 'tau', 'k', 'w', 'e0', 'offset']
-tri_labels = ['P', 'tau', 'k', 'w', 'e0', 'offset']
-tri_truths = [truth[k] for k in tri_cols]
-names = gp.get_parameter_names()
-inds = np.array([names.index("mean:"+k) for k in tri_cols])
-corner.corner(sampler.flatchain[:, inds], truths=tri_truths, labels=tri_labels)
-plt.savefig('corner.png')
-plt.show()
+labels=[r"$P$", r"$\tau$", r"$k$", r"$\omega$", r"$e_{0}$", "$offset$"]
+# fig = corner.corner(samples, labels=["$P$", "$tau$", "$k$", "$w$", "$e0$", "$offset$"])
+fig = corner.corner(real_samples, labels=labels, # truths=[415.4, 4800, 186.8, (352.9/360-1)*2*np.pi, 0.856, 0],
+                quantiles=[0.16, 0.5, 0.84], show_titles=True)
+plt.savefig('76920_MCMC-2-Corner.png')
+# plt.show()
 
 
-samples = sampler.chain[:, 50:, :].reshape((-1, ndim))
-a0, a1, a2, a3, a4, a5, a6, a7, a8 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
 
+#==============================================================================
+# Trace
+#==============================================================================
+
+fig, axes = plt.subplots(ndim, figsize=(10, 7), sharex=True)
+labels_log=[r"$\log\ P$", r"$\log\ \tau$", r"$\log\ k$", r"$\omega$", r"$e_{0}$", "$offset$"]
+for i in range(ndim):
+    ax = axes[i]
+    ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
+    ax.set_xlim(0, sampler.chain.shape[1])
+    ax.set_ylabel(labels_log[i])
+    ax.yaxis.set_label_coords(-0.1, 0.5)
+
+axes[-1].set_xlabel("step number");
+plt.savefig('76920_MCMC-3-Trace.png')
+# plt.show()
+
+
+a0, a1, a2, a3, a4, a5= map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
 aa = np.zeros((6,3))
-aa[0,:] = [a3[i] for i in range(3)]
-aa[1,:] = [a4[i] for i in range(3)]
-aa[2,:] = [a5[i] for i in range(3)]
-aa[3,:] = [a6[i] for i in range(3)]
-aa[4,:] = [a7[i] for i in range(3)]
-aa[5,:] = [a8[i] for i in range(3)]
+aa[0,:] = [a0[i] for i in range(3)]
+aa[1,:] = [a1[i] for i in range(3)]
+aa[2,:] = [a2[i] for i in range(3)]
+aa[3,:] = [a3[i] for i in range(3)]
+aa[4,:] = [a4[i] for i in range(3)]
+aa[5,:] = [a5[i] for i in range(3)]
+np.savetxt('76920_MCMC_result.txt', aa, fmt='%.6f')
 
-np.savetxt('fit_parameter.txt', aa, fmt='%.6f')
 
-
-# chi2
-plt.errorbar(t, y, yerr=yerr, fmt=".")
-plt.ylabel(r"$RV [m/s]$")
-plt.xlabel(r"$JD$")
-
-parameters = np.loadtxt('fit_parameter1000_3.txt')
-P, tau, k, w, e0, offset = parameters[:,0]
-fit_curve = Model(P=P, tau=tau, k=k, w=w, e0=e0, offset=offset)
+P, tau, k, w, e0, offset = aa[:,0]
+fit_curve = Model(P=np.log(P), tau=np.log(tau), k=np.log(k), w=w, e0=e0, offset=offset)
 t_fit   = np.linspace(min(RV_ALL[:,0]), max(RV_ALL[:,0]), num=10001, endpoint=True)
 y_fit   = fit_curve.get_value(np.array(t_fit))
-plt.plot(t_fit, y_fit)
-plt.show()
+plt.figure()
+plt.plot(t_fit, y_fit, label='MCMC fit')
+plt.errorbar(RV_AAT[:,0],   RV_AAT[:,1],    yerr=RV_AAT[:,2],   fmt=".", capsize=0, label='AAT')
+plt.errorbar(RV_CHIRON[:,0],RV_CHIRON[:,1], yerr=RV_CHIRON[:,2],fmt=".", capsize=0, label='CHIRON')
+plt.errorbar(RV_FEROS[:,0], RV_FEROS[:,1],  yerr=RV_FEROS[:,2], fmt=".", capsize=0, label='FEROS')
+plt.errorbar(RV_MJ1[:,0],   RV_MJ1[:,1],    yerr=RV_MJ1[:,2],   fmt=".", capsize=0, label='MJ1')
+plt.errorbar(RV_MJ3[:,0],   RV_MJ3[:,1],    yerr=RV_MJ3[:,2],   fmt=".", capsize=0, label='MJ3')
+plt.title("Adjusted RV time series")
+plt.ylabel("RV [m/s]")
+plt.xlabel("Shifted JD [d]")
+plt.legend()
+plt.savefig('76920_MCMC-4-MCMC_fit.png')
+# plt.show()
 
-residual = fit_curve.get_value(np.array(t)) - np.array(y)
+
+residual = fit_curve.get_value(np.array(x)) - np.array(y)
 chi2 = sum(residual**2 / np.array(yerr)**2)
 rms = np.sqrt(np.mean(residual**2))
+
+
+inds = np.random.randint(len(log_samples), size=100)
+plt.figure()
+for ind in inds:
+    sample = log_samples[ind]
+    fit_curve = Model(P=sample[0], tau=sample[1], k=sample[2], w=sample[3], e0=sample[4], offset=sample[5])
+    y_fit   = fit_curve.get_value(np.array(t_fit))
+    plt.plot(t_fit, y_fit, "g", alpha=0.1)
+plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
+plt.ylabel("RV [m/s]")
+plt.xlabel("Shifted JD [d]")
+plt.savefig('76920_MCMC-5-MCMC_100_realizations.png')
+
+
+
+plt.show()
+
+
+
 
 
 
