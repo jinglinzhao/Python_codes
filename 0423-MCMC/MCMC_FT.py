@@ -16,7 +16,7 @@ real_a      = 4.0
 real_k      = 1.8
 real_phi    = 1.0
 
-N = 50
+N = 100
 amplitude1  = np.zeros(N)
 period1     = np.zeros(N)
 yes1        = 0
@@ -82,7 +82,7 @@ for n in range(N):
         fig = plt.figure()
         plt.plot(t, RV_IN0, 'o', label='full samples')
         plt.plot(x, RV_IN, 'r.', label='sub-sampling')
-        plt.title('Sampling = %i)$' % n_obs)
+        plt.title('Sampling = %i)' % n_obs)
         plt.xlabel(r"$t$")
         plt.ylabel('Measured RV [m/s]')
         plt.legend()
@@ -151,7 +151,7 @@ for n in range(N):
     ndim    = 4
     nwalkers = 32
     sampler2 = emcee.EnsembleSampler(nwalkers, ndim, lnprob2, args=(x, RV_IN))
-    pos2     = [[(max(RV_IN)-min(RV_IN))/2, 5., 1., 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+    pos2     = [[(max(RV_IN)-min(RV_IN))/2, 5., 1., 0.] + 5e-1*np.random.randn(ndim) for i in range(nwalkers)] 
 
 
     print("Running first burn-in...")
@@ -240,7 +240,7 @@ for n in range(N):
         # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
         def lnlike(theta, x, y, yerr):
             a, k, phi, b = theta
-            m = 0.77
+            m = 0.5
             model = a * np.sin(x/100. * k * 2. * np.pi + phi) + (RV_diff + b)/(1-m)    
             return -0.5*(np.sum( ((y-model)/yerr)**2. ))
 
@@ -255,7 +255,7 @@ for n in range(N):
         ndim    = 4
         nwalkers = 32
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, RV_IN))
-        pos     = [[(max(RV_IN)-min(RV_IN))/2, 5, 1., 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+        pos     = [[(max(RV_IN)-min(RV_IN))/2, 5, 1., 0.] + 5e-1*np.random.randn(ndim) for i in range(nwalkers)] 
 
 
         print("Running first burn-in...")
@@ -294,7 +294,7 @@ for n in range(N):
 
         print(np.vstack((a, k, phi, b)))
 
-        m = [0.77]
+        m = [0.5]
 
 
 
@@ -330,7 +330,7 @@ for n in range(N):
         ndim    = 5
         nwalkers = 32
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, RV_IN))
-        pos     = [[(max(RV_IN)-min(RV_IN))/2, 5, 1., 0.75, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+        pos     = [[(max(RV_IN)-min(RV_IN))/2, 5, 1., 0.75, 0.] + 5e-1*np.random.randn(ndim) for i in range(nwalkers)] 
 
 
         print("Running first burn-in...")
@@ -432,7 +432,10 @@ for n in range(N):
 ##############
 
 percentage1 = yes1 / N
+percentage1_2sigma = yes1_2sigma / N
 percentage2 = yes2 / N
+percentage2_2sigma = yes2_2sigma / N
+
 
 bin_min = min(min(amplitude1), min(amplitude2))
 bin_max = max(max(amplitude1), max(amplitude2))
@@ -440,7 +443,7 @@ bin_max = max(max(amplitude1), max(amplitude2))
 bins = 15
 
 histogram1 = plt.figure()
-plt.hist([amplitude1, amplitude2], bins, alpha=0.8, label = ['FT correction %.2f' %percentage1, 'No correction %.2f' %percentage2]  )
+plt.hist([amplitude1, amplitude2], bins, alpha=0.8, label = ['FT correction 1$\sigma$: %.2f' %percentage1, 'No correction 1$\sigma$ %.2f' %percentage2]  )
 # plt.hist(amplitude1, bins, alpha=0.8, label = 'FT correction')
 # plt.hist(amplitude2, bins, alpha=0.8, label = 'No correction')
 plt.xlabel('Amplitude')
@@ -449,7 +452,7 @@ plt.legend()
 plt.savefig('Histogram_1.png')
 
 histogram2 = plt.figure()
-plt.hist([period1, period2], bins, alpha=0.8, label = ['FT correction','No correction'])
+plt.hist([period1, period2], bins, alpha=0.8, label = ['FT correction 2$\sigma$: %.2f' %percentage1_2sigma,'No correction 2$\sigma$: %.2f' %percentage2_2sigma])
 # plt.hist(period1, num_bins, alpha=0.5, label = 'FT correction')
 # plt.hist(period2, num_bins, alpha=0.5, label = 'No correction')
 plt.xlabel('Period')
