@@ -13,7 +13,9 @@ to introduce 5 different offsets for the MCMC fitting
 import numpy as np
 
 
-all_rvs 	= np.genfromtxt('all_rvs_N102_5sets.dat', dtype = None)
+# all_rvs 	= np.genfromtxt('all_rvs_N102_outlier_removed.dat', dtype = None)
+all_rvs     = np.genfromtxt('all_rvs_N102_outlier_and_5MJ_removed.dat', dtype = None)
+
 
 for i in range(len(all_rvs)):
     all_rvs[i][2]     = (all_rvs[i][2]**2 + 7**2)**0.5 
@@ -23,6 +25,7 @@ DATA_CHIRON = [all_rvs[k] for k in range(len(all_rvs)) if all_rvs[k][3] == b'CHI
 DATA_FEROS 	= [all_rvs[k] for k in range(len(all_rvs)) if all_rvs[k][3] == b'FEROS']
 DATA_MJ1 	= [all_rvs[k] for k in range(len(all_rvs)) if all_rvs[k][3] == b'MJ1']
 DATA_MJ3 	= [all_rvs[k] for k in range(len(all_rvs)) if all_rvs[k][3] == b'MJ3']
+DATA_FIDEOS = [all_rvs[k] for k in range(len(all_rvs)) if all_rvs[k][3] == b'FIDEOS']
 
 
 RV_AAT 		= np.zeros( (len(DATA_AAT), 3) )
@@ -30,7 +33,7 @@ RV_CHIRON 	= np.zeros( (len(DATA_CHIRON), 3) )
 RV_FEROS 	= np.zeros( (len(DATA_FEROS), 3) )
 RV_MJ1 		= np.zeros( (len(DATA_MJ1), 3) )
 RV_MJ3 		= np.zeros( (len(DATA_MJ3), 3) )
-
+RV_FIDEOS   = np.zeros( (len(DATA_FIDEOS), 3) )
 
 for k in range(len(DATA_AAT)):
 	RV_AAT[k, :] 	= [ DATA_AAT[k][i] for i in range(3) ]
@@ -47,9 +50,12 @@ for k in range(len(DATA_MJ1)):
 for k in range(len(DATA_MJ3)):
 	RV_MJ3[k, :]	= [ DATA_MJ3[k][i] for i in range(3) ]
 
+for k in range(len(DATA_FIDEOS)):
+    RV_FIDEOS[k, :] = [ DATA_FIDEOS[k][i] for i in range(3) ]    
+
 
 # Concatenate the five data sets # 
-RV_ALL  = np.concatenate((RV_AAT, RV_CHIRON, RV_FEROS, RV_MJ1, RV_MJ3))
+RV_ALL  = np.concatenate((RV_AAT, RV_CHIRON, RV_FEROS, RV_MJ1, RV_MJ3, RV_FIDEOS))
 RV_SORT = sorted(RV_ALL, key=lambda x: x[0])
 x       = [RV_SORT[i][0] for i in range(len(RV_SORT))]
 y       = [RV_SORT[i][1] for i in range(len(RV_SORT))]
@@ -66,7 +72,7 @@ from celerite.modeling import Model
 
 
 class Model(Model):
-    parameter_names = ('P', 'tau', 'k', 'w', 'e0', 'off_aat', 'off_chiron', 'off_feros', 'off_mj1', 'off_mj3')
+    parameter_names = ('P', 'tau', 'k', 'w', 'e0', 'off_aat', 'off_chiron', 'off_feros', 'off_mj1', 'off_mj3', 'off_fideos')
 
     def get_value(self, t):
         M_anom  = 2*np.pi/np.exp(self.P) * (t.flatten() - np.exp(self.tau))
@@ -78,21 +84,29 @@ class Model(Model):
         for i in range(len(t)):
             if t[i] in RV_AAT[:,0]:
                 offset[i] = self.off_aat
-            if t[i] in RV_CHIRON[:,0]:
+            elif t[i] in RV_CHIRON[:,0]:
                 offset[i] = self.off_chiron
-            if t[i] in RV_FEROS[:,0]:
+            elif t[i] in RV_FEROS[:,0]:
                 offset[i] = self.off_feros           
-            if t[i] in RV_MJ1[:,0]:
+            elif t[i] in RV_MJ1[:,0]:
                 offset[i] = self.off_mj1
-            if t[i] in RV_MJ3[:,0]:
+            elif t[i] in RV_MJ3[:,0]:
                 offset[i] = self.off_mj3             
+            elif t[i] in RV_FIDEOS[:,0]:
+                offset[i] = self.off_fideos
 
         return rv + 100*offset
 
 
 # The dict() constructor builds dictionaries directly from sequences of key-value pairs:
+OFFSET_AAT      = 3.0/100
+OFFSET_CHIRON   = -70./100
+OFFSET_FEROS    = -8.4/100
+OFFSET_MJ1      = -12.8/100
+OFFSET_MJ3      = -54.4/100
+OFFSET_FIDEOS   = -83.2/100
 truth   = dict(log_P=np.log(415.9), log_tau=np.log(4812), log_k=np.log(186.8), w=-0.06, e0=0.856,
-                off_aat=0, off_chiron=0, off_feros=0, off_mj1=0, off_mj3=0)
+                off_aat=OFFSET_AAT, off_chiron=OFFSET_CHIRON, off_feros=OFFSET_FEROS, off_mj1=OFFSET_MJ1, off_mj3=OFFSET_MJ3, off_fideos=OFFSET_FIDEOS)
 
 
 
@@ -106,16 +120,16 @@ truth   = dict(log_P=np.log(415.9), log_tau=np.log(4812), log_k=np.log(186.8), w
 # As prior, we assume an 'uniform' prior (i.e. constant prob. density)
 
 def lnprior(theta):
-    P, tau, k, w, e0, off_aat, off_chiron, off_feros, off_mj1, off_mj3 = theta
+    P, tau, k, w, e0, off_aat, off_chiron, off_feros, off_mj1, off_mj3, off_fideos = theta
     if (5.8 < P < 6.1) and (4.6 < k < 5.7) and (-np.pi < w < np.pi) and (0.7 < e0 < 0.99):
         return 0.0
     return -np.inf
 
 # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
 def lnlike(theta, x, y, yerr):
-    P, tau, k, w, e0, off_aat, off_chiron, off_feros, off_mj1, off_mj3 = theta
+    P, tau, k, w, e0, off_aat, off_chiron, off_feros, off_mj1, off_mj3, off_fideos = theta
     fit_curve   = Model(P=P, tau=tau, k=k, w=w, e0=e0, off_aat=off_aat, off_chiron=off_chiron, 
-                        off_feros=off_feros, off_mj1=off_mj1, off_mj3=off_mj3)
+                        off_feros=off_feros, off_mj1=off_mj1, off_mj3=off_mj3, off_fideos=off_fideos)
     y_fit       = fit_curve.get_value(np.array(x))
     return -0.5*(np.sum( ((y-y_fit)/yerr)**2. ))
 
@@ -135,8 +149,8 @@ import time
 time_start  = time.time()
 
 print("Running first burn-in...")
-# pos = [[6., 8.5, 5.3, 0, 0.8, OFFSET_AAT, OFFSET_CHIRON, OFFSET_FEROS, OFFSET_MJ1, OFFSET_MJ3] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
-pos = [[6., 8.5, 5.3, 0, 0.8, 0., 0., 0., 0., 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+pos = [[6., 8.5, 5.3, 0, 0.8, OFFSET_AAT, OFFSET_CHIRON, OFFSET_FEROS, OFFSET_MJ1, OFFSET_MJ3, OFFSET_FIDEOS] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+# pos = [[6., 8.5, 5.3, 0, 0.8, 0., 0., 0., 0., 0., 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
 pos, prob, state  = sampler.run_mcmc(pos, 3000)
 
 print("Running second burn-in...")
@@ -166,7 +180,7 @@ fig, axes = plt.subplots(ndim, figsize=(10, 7), sharex=True)
 labels_log=[r"$\log\ P$", r"$\log\ T_{0}$", r"$\log\ K$", r"$\omega$", r"$e$", 
             r"$\frac{\delta_{AAT}}{100}$", r"$\frac{\delta_{CHIRON}}{100}$", 
             r"$\frac{\delta_{FEROS}}{100}$", r"$\frac{\delta_{MJ1}}{100}$", 
-            r"$\frac{\delta_{MJ3}}{100}$"]
+            r"$\frac{\delta_{MJ3}}{100}$", r"$\frac{\delta_{FIDEOS}}{100}$"]
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -175,15 +189,15 @@ for i in range(ndim):
     ax.yaxis.set_label_coords(-0.1, 0.5)
 
 axes[-1].set_xlabel("step number");
-plt.savefig('76920_MCMC_5sets-2-Trace.png')
-plt.show()
+plt.savefig('76920_MCMC_6sets-2-Trace.png')
+# plt.show()
 
 
 import corner
 labels=[r"$P$", r"$T_{0}$", r"$K$", r"$\omega$", r"$e$", r"$\delta_{AAT}$", r"$\delta_{CHIRON}$", 
-            r"$\delta_{FEROS}$", r"$\delta_{MJ1}$", r"$\delta_{MJ3}$"]
+            r"$\delta_{FEROS}$", r"$\delta_{MJ1}$", r"$\delta_{MJ3}$", r"$\delta_{FIDEOS}$"]
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
-plt.savefig('76920_MCMC_5sets-1-Corner.png')
+plt.savefig('76920_MCMC_6sets-1-Corner.png')
 # plt.show()
 
 
@@ -191,7 +205,7 @@ plt.savefig('76920_MCMC_5sets-1-Corner.png')
 # Output
 #==============================================================================
 
-a0, a1, a2, a3, a4, a5, a6, a7, a8, a9 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
+a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10= map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
 aa = np.zeros((len(truth),3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
@@ -203,42 +217,37 @@ aa[6,:] = [a6[i] for i in range(3)]
 aa[7,:] = [a7[i] for i in range(3)]
 aa[8,:] = [a8[i] for i in range(3)]
 aa[9,:] = [a9[i] for i in range(3)]
-np.savetxt('76920_MCMC_5sets_result.txt', aa, fmt='%.6f')
+aa[10,:]= [a10[i] for i in range(3)]
+np.savetxt('76920_MCMC_6sets_result.txt', aa, fmt='%.6f')
 
 
-
-
-P, tau, k, w, e0, off_aat, off_chiron, off_feros, off_mj1, off_mj3 = aa[:,0]
+P, tau, k, w, e0, off_aat, off_chiron, off_feros, off_mj1, off_mj3, off_fideos = aa[:,0]
 fit_curve = Model(P=np.log(P), tau=np.log(tau), k=np.log(k), w=w, e0=e0, off_aat=off_aat/100, off_chiron=off_chiron/100, 
-                        off_feros=off_feros/100, off_mj1=off_mj1/100, off_mj3=off_mj3/100)
+                        off_feros=off_feros/100, off_mj1=off_mj1/100, off_mj3=off_mj3/100, off_fideos=off_fideos/100)
 t_fit   = np.linspace(min(RV_ALL[:,0])-20, max(RV_ALL[:,0]+20), num=10001, endpoint=True)
 y_fit   = fit_curve.get_value(np.array(t_fit))
 
-# I need to add the offset into the data before plotting
-RV_AAT[:,1]     -= off_aat
-RV_CHIRON[:,1]  -= off_chiron
-RV_FEROS[:,1]   -= off_feros
-RV_MJ1[:,1]     -= off_mj1
-RV_MJ3[:,1]     -= off_mj3
+residual= fit_curve.get_value(np.array(x)) - np.array(y)
+chi2    = sum(residual**2 / np.array(yerr)**2)
+rms     = np.sqrt(np.mean(residual**2))
+np.savetxt('residual_6set.txt', residual)
+
+
 
 plt.figure()
 plt.plot(t_fit, y_fit, label='MCMC fit')
-plt.errorbar(RV_AAT[:,0],   RV_AAT[:,1],    yerr=RV_AAT[:,2],   fmt=".", capsize=0, label='AAT')
-plt.errorbar(RV_CHIRON[:,0],RV_CHIRON[:,1], yerr=RV_CHIRON[:,2],fmt=".", capsize=0, label='CHIRON')
-plt.errorbar(RV_FEROS[:,0], RV_FEROS[:,1],  yerr=RV_FEROS[:,2], fmt=".", capsize=0, label='FEROS')
-plt.errorbar(RV_MJ1[:,0],   RV_MJ1[:,1],    yerr=RV_MJ1[:,2],   fmt=".", capsize=0, label='MJ1')
-plt.errorbar(RV_MJ3[:,0],   RV_MJ3[:,1],    yerr=RV_MJ3[:,2],   fmt=".", capsize=0, label='MJ3')
+plt.errorbar(RV_AAT[:,0],   RV_AAT[:,1]-off_aat,        yerr=RV_AAT[:,2],   fmt=".", capsize=0, label='AAT')
+plt.errorbar(RV_CHIRON[:,0],RV_CHIRON[:,1]-off_chiron,  yerr=RV_CHIRON[:,2],fmt=".", capsize=0, label='CHIRON')
+plt.errorbar(RV_FEROS[:,0], RV_FEROS[:,1]-off_feros,    yerr=RV_FEROS[:,2], fmt=".", capsize=0, label='FEROS')
+plt.errorbar(RV_MJ1[:,0],   RV_MJ1[:,1]-off_mj1,        yerr=RV_MJ1[:,2],   fmt=".", capsize=0, label='MJ1')
+plt.errorbar(RV_MJ3[:,0],   RV_MJ3[:,1]-off_mj3,        yerr=RV_MJ3[:,2],   fmt=".", capsize=0, label='MJ3')
+plt.errorbar(RV_FIDEOS[:,0],RV_FIDEOS[:,1]-off_fideos,  yerr=RV_FIDEOS[:,2],fmt=".", capsize=0, label='FIDEOS')
 plt.ylabel("RV [m/s]")
 plt.xlabel("BJD - 2450000")
 plt.legend(loc="upper center")
-plt.savefig('76920_MCMC_5sets-3-MCMC_fit.png')
+plt.savefig('76920_MCMC_6sets-3-MCMC_fit.png')
 plt.show()
 
-
-residual = fit_curve.get_value(np.array(x)) - np.array(y)
-chi2    = sum(residual**2 / np.array(yerr)**2)
-rms     = np.sqrt(np.mean(residual**2))
-wrms    = residual**2 / np.array(yerr)**2
 
 if 0:
     inds = np.random.randint(len(log_samples), size=100)
@@ -252,9 +261,8 @@ if 0:
     plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
     plt.ylabel("RV [m/s]")
     plt.xlabel("Shifted JD [d]")
-    plt.savefig('76920_MCMC_5sets-4-MCMC_100_realizations.png')
+    plt.savefig('76920_MCMC_6sets-4-MCMC_100_realizations.png')
     # plt.close()
-
 
 
 #==============================================================================
@@ -263,36 +271,23 @@ if 0:
 
 from astropy.stats import LombScargle
 
-for k in range(len(DATA_AAT)):
-    RV_AAT[k, :]    = [ DATA_AAT[k][i] for i in range(3) ]
+RV_AAT[:,1]     -= off_aat
+RV_CHIRON[:,1]  -= off_chiron
+RV_FEROS[:,1]   -= off_feros
+RV_MJ1[:,1]     -= off_mj1
+RV_MJ3[:,1]     -= off_mj3
+RV_FIDEOS[:,1]  -= off_fideos
 
-for k in range(len(DATA_CHIRON)):
-    RV_CHIRON[k, :] = [ DATA_CHIRON[k][i] for i in range(3) ]
-
-for k in range(len(DATA_FEROS)):
-    RV_FEROS[k, :]  = [ DATA_FEROS[k][i] for i in range(3) ]
-
-for k in range(len(DATA_MJ1)):
-    RV_MJ1[k, :]    = [ DATA_MJ1[k][i] for i in range(3) ]
-
-for k in range(len(DATA_MJ3)):
-    RV_MJ3[k, :]    = [ DATA_MJ3[k][i] for i in range(3) ]
-
-
-RV_ALL_LS   = np.concatenate((RV_AAT, RV_CHIRON, RV_FEROS, RV_MJ1, RV_MJ3))
+RV_ALL_LS   = np.concatenate((RV_AAT, RV_CHIRON, RV_FEROS, RV_MJ1, RV_MJ3, RV_FIDEOS))
 RV_SORT_LS  = sorted(RV_ALL_LS, key=lambda x: x[0])
 x_LS        = [RV_SORT_LS[i][0] for i in range(len(RV_SORT_LS))]
 y_LS        = [RV_SORT_LS[i][1] for i in range(len(RV_SORT_LS))]
 yerr_LS     = [RV_SORT_LS[i][2] for i in range(len(RV_SORT_LS))]
 
-y_MCMC      = fit_curve.get_value(np.array(x_LS))
-res_MCMC    = y_MCMC - y_LS     # model - data
-
-
 if 1: # test plot
     plt.figure()
     # plt.errorbar(x_LS, y_LS, yerr_LS, fmt=".", capsize=0)
-    plt.errorbar(x_LS, res_MCMC, yerr_LS, fmt=".", capsize=0)
+    plt.errorbar(x_LS, residual, yerr_LS, fmt=".", capsize=0)
     # plt.plot(x_LS, -res_MCMC, '.')
     # plt.plot(t_fit, y_fit, label='MCMC fit')
     plt.show()
@@ -308,7 +303,7 @@ frequency0, power0 = LombScargle(x_LS, y_LS, yerr_LS).autopower(minimum_frequenc
                                                    maximum_frequency=max_f,
                                                    samples_per_peak=spp)
 
-frequency1, power1 = LombScargle(x_LS, res_MCMC, yerr_LS).autopower(minimum_frequency=min_f,
+frequency1, power1 = LombScargle(x_LS, residual, yerr_LS).autopower(minimum_frequency=min_f,
                                                    maximum_frequency=max_f,
                                                    samples_per_peak=spp)
 
@@ -320,7 +315,7 @@ plt.plot(1/frequency1, power1, label='Residual', ls='--')
 plt.xlabel("Period")
 plt.ylabel("Power")
 plt.legend()
-plt.savefig('76920_MCMC_5sets-5-Periodogram.png')
+plt.savefig('76920_MCMC_6sets-5-Periodogram.png')
 plt.show()
 
 
@@ -352,7 +347,7 @@ mpsini_16, mpsini_50, mpsini_84 = np.percentile(mpsini, [16, 50, 84])
 
 a_semi_array = [a_semi_50, a_semi_84-a_semi_50, a_semi_50-a_semi_16]
 mpsini_array = [mpsini_50, mpsini_84-mpsini_50, mpsini_50-mpsini_16]
-np.savetxt('76920_MCMC_5sets_result2.txt', np.vstack((a_semi_array, mpsini_array)), fmt='%.6f')
+np.savetxt('76920_MCMC_6sets_result2.txt', np.vstack((a_semi_array, mpsini_array)), fmt='%.6f')
 
 if 0:
     np.histogram(a_semi, bins=20)
