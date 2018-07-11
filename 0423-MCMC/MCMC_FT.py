@@ -6,14 +6,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from functions import gran_gen
+from functions import gaussian_smoothing
 
 
 #==============================================================================
 # Setup
 #==============================================================================
 
-real_a      = 4.0
-real_k      = 1.8
+real_a      = 2.0
+real_k      = 0.7
 real_phi    = 1.0
 
 N = 100
@@ -62,16 +63,17 @@ time0   = time.time()
 os.makedirs(str(time0))
 os.chdir(str(time0))
 
+
+# from multiprocessing import Pool
+
 for n in range(N):
 
     print('----' + '-' * len(str(n)))
     print('n = %i' %n)
     print('----' + '-' * len(str(n)))
 
-    new_dir = str(n)
+    new_dir = str(n) + '/'
     os.makedirs(new_dir)
-    os.chdir(new_dir)
-
 
     ################
     # Present data #
@@ -80,39 +82,41 @@ for n in range(N):
     # re-sample
     x       = gran_gen(n_group, n_obs)
     print('Observation samples:')
-    print(x)
     x = np.sort(random.sample(range(200), 40))
+    print(x)    
     RV_IN   = np.array([RV_IN0[i] for i in x])
     RV_FT   = np.array([RV_FT0[i] for i in x])
     RV_diff = RV_IN - RV_FT
+    RV_diff = gaussian_smoothing(x, RV_diff, x, 2)
+    # Gaussian smoothing 
+    # RV_diff2 = gaussian_smoothing(x, RV_diff, x, 6)
+    # plt.plot(t, Jitter_in, x, RV_diff*5, '.', x, RV_diff2*5, '*'); plt.show() 
 
 
     if 1: # sub-sampling 
         fig = plt.figure()
         plt.plot(t, RV_IN0, 'o', label='full samples')
         plt.plot(x, RV_IN, 'r.', label='sub-sampling')
-        plt.title('Sampling = %i)' % n_obs)
+        plt.title('Sampling = %i' % n_obs)
         plt.xlabel(r"$t$")
         plt.ylabel('Measured RV [m/s]')
         plt.legend()
-        plt.savefig('0-RV_sampling.png')
-
+        plt.savefig(new_dir + '0-RV_sampling.png')
 
     if 1:   # Time series 
         fig = plt.figure()
         frame1 = fig.add_axes((.1,.3,.8,.6))
-        plt.plot(x, RV_IN, 'b^', label=r'RV$_{IN}$')
-        plt.plot(x, RV_FT, 'r.', label=r'RV$_{FT}$')
-        plt.title(r'Time Series $(N_{observation} = %i)$' % n_obs)
-        plt.ylabel(r"$RV [m/s]$")
+        plt.plot(x, RV_FT, 'rs', label='FT')
+        plt.plot(x, RV_IN, 'bo', label='Gaussian')
+        plt.title(r'$N_{sample} = %i$' % n_obs)
+        plt.ylabel('RV (m/s)')
         plt.legend()
 
         frame2  = fig.add_axes((.1,.1,.8,.2))   
         plt.plot(x, RV_diff, 'k.', label='jitter model')
         plt.xlabel(r"$t$")
-        plt.ylabel('Scaled jitter [m/s]')
-        plt.savefig('1-Time_series.png')
-
+        plt.ylabel(r'$\Delta$ RV (m/s)')
+        plt.savefig(new_dir + '1-Time_series.png')
 
     if 1:   # Comparison 
         fig = plt.figure()
@@ -123,7 +127,7 @@ for n in range(N):
         plt.ylabel(r"$RV_{FT} [m/s]$")
         plt.xlabel(r"$RV_{IN} [m/s]$")
         plt.legend()
-        plt.savefig('2-Comparison.png')
+        plt.savefig(new_dir + '2-Comparison.png')
 
 
     #==============================================================================
@@ -160,11 +164,11 @@ for n in range(N):
     sampler2 = emcee.EnsembleSampler(nwalkers, ndim, lnprob2, args=(x, RV_IN, yerr)) # Note that running with multiple threads takes three times the time
 
     print("Running first burn-in...")
-    pos2     = [[np.log(np.var(RV_IN)), np.log(5), 1., 0.] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+    pos2     = [[np.log(np.var(RV_IN)), np.log(1), 1., 0.] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
     pos2, prob2, state2  = sampler2.run_mcmc(pos2, burn_in_1_step)
 
     print("Running second burn-in...")
-    pos2 = [pos2[np.argmax(prob2)] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+    pos2 = [pos2[np.argmax(prob2)] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
     pos2, prob2, state2  = sampler2.run_mcmc(pos2, burn_in_2_step)
 
     print("Running production...")
@@ -175,7 +179,7 @@ for n in range(N):
     #==============================================================================
 
     fig, axes = plt.subplots(ndim, figsize=(10, 7), sharex=True)
-    labels_log=[r"$\log\ P$", r"$\log\ K$", r"$\omega$", r"$\delta$"]
+    labels_log=[r"$\log\ A$", r"$\log\ \nu$", r"$\omega$", r"b"]
     for i in range(ndim):
         ax = axes[i]
         ax.plot( np.rot90(sampler2.chain[:, :, i], 3), "k", alpha=0.3)
@@ -183,8 +187,8 @@ for n in range(N):
         ax.set_ylabel(labels_log[i])
         ax.yaxis.set_label_coords(-0.1, 0.5)
 
-    axes[-1].set_xlabel("step number");
-    plt.savefig('3-Trace2.png')
+    axes[-1].set_xlabel("Step number");
+    plt.savefig(new_dir + '3-Trace2.png')
 
 
     import copy
@@ -193,9 +197,9 @@ for n in range(N):
     real_samples[:,0:2] = np.exp(real_samples[:,0:2])
 
     import corner
-    fig = corner.corner(real_samples, labels=["$a$", "$k$", "$phi$", "$b$"], truths=[real_a, real_k, real_phi, 0],
+    fig = corner.corner(real_samples, labels=[r"$A$", r"$\nu$", r"$\omega$", r"$b$"], truths=[real_a, real_k, real_phi, 100],
                         quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
-    plt.savefig('3-MCMC2.png')
+    plt.savefig(new_dir + '3-MCMC2.png')
 
 
     #==============================================================================
@@ -226,24 +230,24 @@ for n in range(N):
     RV2_os  = a2[0] * np.sin(t/100. * k2[0] * 2. * np.pi + phi2[0]) + b2[0]
     frame1  = fig.add_axes((.1,.3,.8,.6))
     frame1.axhline(color="gray", ls='--')
-    plt.plot(x, RV_IN, '^', label='data')
+    plt.plot(x, RV_IN, 'o', label='Data')
     plt.xlim(0,200) 
-    plt.plot(x, RV2_pos, 'go', label='prediction')
-    plt.plot(t, RV2_os, 'g', label='model')
-    plt.title('Fit without FT correction')
-    plt.ylabel(r"$RV [m/s]$")
+    plt.plot(x, RV2_pos, 'g^')
+    plt.plot(t, RV2_os, 'g', label='Planet model')
+    plt.title('No correction')
+    plt.ylabel("RV (m/s)")
     plt.legend()
     frame1.set_xticklabels([])
 
     frame2  = fig.add_axes((.1,.1,.8,.2))   
     frame2.axhline(color="gray", ls='--')
     rms     = np.sqrt(np.var(RV2_pos - RV_IN))
-    plt.plot(x, RV2_pos - RV_IN , 'r.', label=r'rms$=%.2f m/s$' %rms)
+    plt.plot(x, RV2_pos - RV_IN , 'k.', label=r'rms$=%.2f m/s$' %rms)
     plt.xlim(0,200) 
     plt.xlabel(r"$t$")
-    plt.ylabel(r"$residual\ [m/s]$")
+    plt.ylabel("Residual (m/s)")
     plt.legend()
-    plt.savefig('5-Fit2.png')
+    plt.savefig(new_dir + '5-Fit2.png')
     plt.close('all')
 
 
@@ -304,7 +308,7 @@ for n in range(N):
             ax.set_ylabel(labels_log[i])
             ax.yaxis.set_label_coords(-0.1, 0.5)
 
-        axes[-1].set_xlabel("step number");
+        axes[-1].set_xlabel("Step number");
         plt.savefig('3-Trace1.png')
 
 
@@ -354,7 +358,7 @@ for n in range(N):
 
         def lnprior(theta):
             a, k, phi, m, b = theta
-            if (-5 < a < 5) and (-5 < k < 5) and (-2*np.pi < phi < 2*np.pi) and (-5 < m < 3) and (-10. < b < 10.):
+            if (-5 < a < 5) and (-5 < k < 5) and (-2*np.pi < phi < 2*np.pi) and (1 < m < 3) and (-10. < b < 10.):
                 return 0.0
             return -np.inf
 
@@ -379,7 +383,7 @@ for n in range(N):
         sampler     = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, RV_IN, yerr))
 
         print("Running first burn-in...")
-        pos         = [[np.log(np.var(RV_IN)), np.log(5), 1., 0.75, 2.] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+        pos         = [[np.log(np.var(RV_IN)), np.log(1), 1., 1.6, 0] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
         pos, prob, state  = sampler.run_mcmc(pos, burn_in_1_step)
 
         print("Running second burn-in...")
@@ -395,7 +399,7 @@ for n in range(N):
         #==============================================================================
 
         fig, axes = plt.subplots(ndim, figsize=(10, 7), sharex=True)
-        labels_log=[r"$\log\ P$", r"$\log\ K$", r"$\omega$", r"$m$", r"$\delta$"]
+        labels_log=[r"$\log\ A$", r"$\log\ \nu$", r"$\omega$", r"$\log\ m$", r"$b$"]
         for i in range(ndim):
             ax = axes[i]
             ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -403,8 +407,8 @@ for n in range(N):
             ax.set_ylabel(labels_log[i])
             ax.yaxis.set_label_coords(-0.1, 0.5)
 
-        axes[-1].set_xlabel("step number");
-        plt.savefig('3-Trace1.png')
+        axes[-1].set_xlabel("Step number");
+        plt.savefig(new_dir + '3-Trace1.png')
 
 
         import copy
@@ -414,9 +418,9 @@ for n in range(N):
         real_samples[:,3] = np.exp(real_samples[:,3])
 
         import corner
-        fig = corner.corner(real_samples, labels=["$a$", "$k$", "$phi$", "$m$", "$b$"], truths=[real_a, real_k, real_phi, 0.72, 0],
+        fig = corner.corner(real_samples, labels=[r"$A$", r"$\nu$", r"$\omega$", r"$m$", r"$b$"], truths=[real_a, real_k, real_phi, 100, 100],
                             quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
-        plt.savefig('3-MCMC1.png')
+        plt.savefig(new_dir + '3-MCMC1.png')
 
 
         #==============================================================================
@@ -448,41 +452,42 @@ for n in range(N):
 
     fig = plt.figure()
     RV_diff0    = RV_IN0 - RV_FT0
-    Jitter_pos0 = RV_diff0 * m[0]
+    Jitter_pos0 = (RV_diff0 + b[0]) * m[0]
     # Jitter_pos0 = np.hstack((Jitter_pos0,Jitter_pos0))
-    Jitter_pos  = RV_diff * m[0]
+    Jitter_pos  = (RV_diff + b[0]) * m[0]
     Jitter_in   = RV_jitter - RV_jitter[0]
     Jitter_in   = np.array([Jitter_in[i] for i in x%100])
     plt.plot(x, Jitter_in - np.mean(Jitter_in), '*', label='Jitter_in')
-    plt.plot(t, Jitter_pos0 - np.mean(Jitter_pos0), '-', label='Jitter_pos')
+    plt.plot(x, Jitter_pos - np.mean(Jitter_pos), 'o', label='Jitter_pos')
     plt.legend()
-    plt.savefig('4-Jitter_correction.png')
+    plt.savefig(new_dir + '4-Jitter_correction.png')
 
 
     fig = plt.figure()
-    RV_pos  = a[0] * np.sin(x/100. * k[0] * 2. * np.pi + phi[0]) + b[0] * m[0]
-    RV_os   = a[0] * np.sin(t/100. * k[0] * 2. * np.pi + phi[0]) + b[0] * m[0]
+    RV_pos  = a[0] * np.sin(x/100. * k[0] * 2. * np.pi + phi[0])
+    RV_os   = a[0] * np.sin(t/100. * k[0] * 2. * np.pi + phi[0])
     frame1  = fig.add_axes((.1,.3,.8,.6))
     frame1.axhline(color="gray", ls='--')
-    plt.plot(x, RV_IN, '^', label='data')
-    plt.plot(x, RV_pos, 'go')
-    plt.plot(t, RV_os, 'g--', label='planet model')
-    plt.plot(x, Jitter_pos0[x], 'k.', label='jitter correction')
+    plt.plot(x, RV_IN, 'o', label='Data')
+    plt.plot(x, RV_pos, 'g^')
+    plt.plot(t, RV_os, 'g--', label='Planet model')
+    plt.plot(x, Jitter_pos0[x], '.', label='Jitter model', color='darkorange')
     plt.xlim(0,200) 
-    plt.title('Fit with FT correction')
-    plt.ylabel(r"$RV [m/s]$")
+    plt.title('FT correction')
+    plt.ylabel("RV (m/s)")
     plt.legend()
     frame1.set_xticklabels([])
 
     frame2  = fig.add_axes((.1,.1,.8,.2))   
     frame2.axhline(color="gray", ls='--')
-    rms     = np.sqrt(np.var(RV_IN - (RV_pos+Jitter_pos0[x])))
-    plt.plot(x, RV_IN - (RV_pos+Jitter_pos0[x]), 'r.', label=r'rms$=%.2f m/s$' %rms)
+    res     = RV_IN - (RV_pos+Jitter_pos0[x])
+    rms     = np.sqrt(np.var(res))
+    plt.plot(x, res, 'k.', label=r'rms$=%.2f m/s$' %rms)
     plt.xlim(0,200) 
     plt.xlabel(r"$t$")
-    plt.ylabel(r"$residual [m/s]$")
+    plt.ylabel("Residual (m/s)")
     plt.legend()
-    plt.savefig('5-Fit1.png')
+    plt.savefig(new_dir + '5-Fit1.png')
     plt.close('all')
 
 
@@ -493,50 +498,57 @@ for n in range(N):
     amplitude2[n]   = a2[0]
     period2[n]      = k2[0]
 
-    # Finish # 
-    os.chdir('..')
-
 
 #==============================================================================
 # Hostogram
 #==============================================================================    
 
-bin_min = min(min(amplitude1), min(amplitude2))
-bin_max = max(max(amplitude1), max(amplitude2))
 # bins  = np.linspace(bin_min, bin_max, 15)
 bins = 15
 
-histogram1 = plt.figure()
-plt.hist([amplitude1, amplitude2], bins, color=['b','r'], alpha=0.8)
-# label = ['FT correction 1$\sigma$: %.2f' %percentage1, 'No correction 1$\sigma$ %.2f' %percentage2]
-x_his = 1.5
-y_his = 35
-plt.text(x_his, y_his, 'FT correction', weight='bold', color='b')
-plt.text(x_his+0.1, y_his-2.5, r'1$\sigma$: %.2f' %(yes1_a1/N), color='b')
-plt.text(x_his+0.1, y_his-5, r'2$\sigma$: %.2f' %(yes1_a2/N), color='b')
-plt.text(x_his, y_his-7.5, 'No correction', weight='bold', color='r')
-plt.text(x_his+0.1, y_his-10, r'1$\sigma$: %.2f' %(yes2_a1/N), color='r')
-plt.text(x_his+0.1, y_his-12.5, r'2$\sigma$: %.2f' %(yes2_a2/N), color='r')
-plt.xlabel('Amplitude')
+ax = plt.subplot(111)
+ax.axvline(x=real_a, color='k', ls='-.')
+# bins  = np.linspace(2, 7.5, 20)
+plt.hist([amplitude1, amplitude2], bins, color=['r','b'], alpha=0.8)
+# x_his = 1.0
+# y_his = 14
+# y_space = 1
+# plt.text(x_his, y_his, 'FT correction', weight='bold', color='b')
+# plt.text(x_his+0.1, y_his-y_space, r'1$\sigma$: %.2f' %(yes1_a1/N), color='b')
+# plt.text(x_his+0.1, y_his-y_space*2, r'2$\sigma$: %.2f' %(yes1_a2/N), color='b')
+# plt.text(x_his, y_his-y_space*3, 'No correction', weight='bold', color='r')
+# plt.text(x_his+0.1, y_his-y_space*4, r'1$\sigma$: %.2f' %(yes2_a1/N), color='r')
+# plt.text(x_his+0.1, y_his-y_space*5, r'2$\sigma$: %.2f' %(yes2_a2/N), color='r')
+plt.xlabel('Amplitude (m/s)')
 plt.ylabel('Count')
-# plt.legend()
-plt.show()
 plt.savefig('Histogram_1.png')
-
-histogram2 = plt.figure()
-plt.hist([period1, period2], bins, color=['b','r'], alpha=0.8)
-x_his = 5
-y_his = 60
-plt.text(x_his, y_his, 'FT correction', weight='bold', color='b')
-plt.text(x_his+0.1, y_his-5, r'1$\sigma$: %.2f' %(yes1_k1/N), color='b')
-plt.text(x_his+0.1, y_his-10, r'2$\sigma$: %.2f' %(yes1_k2/N), color='b')
-plt.text(x_his, y_his-15, 'No correction', weight='bold', color='r')
-plt.text(x_his+0.1, y_his-20, r'1$\sigma$: %.2f' %(yes2_k1/N), color='r')
-plt.text(x_his+0.1, y_his-25, r'2$\sigma$: %.2f' %(yes2_k2/N), color='r')
-plt.xlabel('Amplitude')
-plt.ylabel('Count')
 plt.show()
+
+ax = plt.subplot(111)
+ax.axvline(x=real_k, color='k', ls='-.')
+# bins  = np.linspace(3.65, 4.0, 20)
+plt.hist([period1, period2], bins, color=['r','b'], alpha=0.8)
+# x_his = 3.9
+# y_his = 25
+# y_space = y_his / 20
+# plt.text(x_his, y_his, 'FT correction', weight='bold', color='b')
+# plt.text(x_his+0.01, y_his-y_space, r'1$\sigma$: %.2f' %(yes1_k1/N), color='b')
+# plt.text(x_his+0.01, y_his-y_space*2, r'2$\sigma$: %.2f' %(yes1_k2/N), color='b')
+# plt.text(x_his, y_his-y_space*3, 'No correction', weight='bold', color='r')
+# plt.text(x_his+0.01, y_his-y_space*4, r'1$\sigma$: %.2f' %(yes2_k1/N), color='r')
+# plt.text(x_his+0.01, y_his-y_space*5, r'2$\sigma$: %.2f' %(yes2_k2/N), color='r')
+plt.xlabel(r'$\nu_{orbital}$ / $\nu_{rot}$')
+plt.ylabel('Count')
 plt.savefig('Histogram_2.png')
+plt.show()
+
+print('FT correction:')
+print(yes1_both1/N, yes1_both2/N)
+print('No correction')
+print(yes2_both1/N, yes2_both2/N)
+Performance = np.vstack((np.hstack((yes1_both1/N, yes1_both2/N)), np.hstack((yes2_both1/N, yes2_both2/N))))
+np.savetxt('Performance.txt', Performance, fmt='%.2f')
+
 
 #==============================================================================
 # Ende
