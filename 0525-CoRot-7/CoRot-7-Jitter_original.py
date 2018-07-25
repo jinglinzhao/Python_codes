@@ -8,19 +8,21 @@ BIN_DATA = 0
 
 BJD 	= np.loadtxt('MJD_2012.txt')
 Jitter 	= np.loadtxt('Jitter_model_2012.txt')
-err  	= np.zeros(len(BJD)) + np.sqrt(2)
+RV_noise= np.loadtxt('RV_noise_2012.txt')
+weight 	= 1 / RV_noise**2
 
-
-RV_additional = np.loadtxt('RV_additional')
-RV_conv 	= np.loadtxt('RV_conv')
-RV_additional = np.loadtxt('RV_additional')
-weight = np.loadtxt('weight2.txt')
+RV_additional 	= np.loadtxt('RV_additional')
+RV_conv 		= np.loadtxt('RV_conv')
 
 from functions import gaussian_smoothing
 t_resample = np.linspace(min(BJD), max(BJD), 200)
-Jitter2 = gaussian_smoothing(BJD, Jitter, t_resample, 1.3, weight)
+Jitter2 = gaussian_smoothing(BJD, Jitter, t_resample, 1., weight)
+jitter_smooth = gaussian_smoothing(BJD, Jitter, BJD, 1., weight)
+np.savetxt(out_dir + 'jitter_smooth_2012.txt', jitter_smooth)
 
-plt.plot(BJD, Jitter, 'o', label='noisy jitter')
+
+
+plt.errorbar(BJD, Jitter, yerr=RV_noise, fmt=".k", capsize=0, label='noisy jitter')
 plt.plot(t_resample, Jitter2, '--', label='filtered_jitter')
 plt.show()
 
@@ -46,12 +48,12 @@ np.savetxt(out_dir + 'Jitter_err_BIN_2012.txt', err_bin)
 import matplotlib.pyplot as plt
 if 1:
 	fig = plt.figure()
-	# plt.errorbar(BJD, Jitter, yerr = err, fmt="o", capsize=0)
+	# plt.errorbar(BJD, Jitter*10-10, yerr = RV_noise, fmt="o", capsize=0)
 	plt.plot(t_resample, Jitter2, '--', label='filtered_jitter')
 	plt.plot(RV_additional[:,0], RV_additional[:,1], 'o', label='RV_additional')
 	plt.plot(RV_conv[:,0], RV_conv[:,1], '^', label='RV_conv')
 	plt.plot(np.arange(26), RV_additional[:,1]+RV_conv[:,1], '-', label='RV_a + RV_c')
-	# plt.plot(BJD, GP_y_2012 * 5, '-.', label='GP')
+	plt.plot(BJD, GP_y_2012 * 5, '-.', label='GP')
 	# plt.errorbar(t_bin, y_bin, yerr = err_bin, fmt="*", capsize=0)
 	plt.title('Jitter model for CoRot-7 in 2012')
 	plt.xlabel('MJD')
@@ -68,7 +70,7 @@ if BIN_DATA:
 else:
 	t 	 = BJD
 	y 	 = Jitter
-	yerr = err
+	yerr = RV_noise
 
 
 #==============================================================================

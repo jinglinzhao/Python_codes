@@ -15,12 +15,12 @@ import matplotlib.pyplot as plt
 
 BJD         = np.loadtxt('MJD_2012.txt')
 RV_HARPS    = np.loadtxt('RV_HARPS_2012.txt')
-RV_HARPS_err= np.zeros(len(BJD)) + np.sqrt(1)
+RV_HARPS_err= np.loadtxt('RV_noise_2012.txt')
 GP_y_2012   = np.loadtxt('GP_y_2012.txt')
 GP_err_2012 = np.loadtxt('GP_err_2012.txt')
 Jitter      = np.loadtxt('Jitter_model_2012.txt')
-Jitter_err  = np.zeros(len(BJD)) + np.sqrt(2)
-
+Jitter_err  = np.loadtxt('RV_noise_2012.txt')
+Jitter_smooth = np.loadtxt('jitter_smooth_2012.txt')
 
 
 plt.figure()
@@ -33,7 +33,7 @@ plt.show()
 
 x       = BJD
 y       = RV_HARPS
-yerr    = np.sqrt( (4*Jitter_err)**2+1 )
+yerr    = Jitter_err
 
 #==============================================================================
 # Model
@@ -64,7 +64,7 @@ class Model(Model):
         rv_j    = np.zeros(len(t))
         for i in range(len(t)):
             if t[i] in BJD:
-                rv_j = self.m * Jitter[i]
+                rv_j = self.m * Jitter_smooth[i]
 
         return rv1 + rv2 + rv_j + self.offset
 

@@ -12,6 +12,8 @@ BJD 		= np.loadtxt('MJD_2012.txt')
 Jitter 		= np.loadtxt('Jitter_model_2012.txt')
 RV_HARPS 	= np.loadtxt('RV_HARPS_2012.txt')
 RV_FT_2012 	= np.loadtxt('RV_FT_2012.txt')
+RV_noise= np.loadtxt('RV_noise_2012.txt')
+
 
 
 GP_y_2012 		= np.loadtxt('GP_y_2012.txt')
@@ -29,7 +31,7 @@ min_f 	= 0.04
 max_f 	= 5
 spp 	= 10
 
-frequency0, power0 = LombScargle(BJD, Jitter).autopower(minimum_frequency=min_f,
+frequency0, power0 = LombScargle(BJD, Jitter, RV_noise).autopower(minimum_frequency=min_f,
                                                    maximum_frequency=max_f,
                                                    samples_per_peak=spp)
 
@@ -45,7 +47,7 @@ frequency3, power3 = LombScargle(MJD_BIN_2012, GP_y_2012_bin, GP_err_2012_bin).a
                                                    maximum_frequency=max_f,
                                                    samples_per_peak=spp)
 
-frequency4, power4 = LombScargle(BJD, RV_HARPS).autopower(minimum_frequency=min_f,
+frequency4, power4 = LombScargle(BJD, RV_HARPS, RV_noise).autopower(minimum_frequency=min_f,
                                                    maximum_frequency=max_f,
                                                    samples_per_peak=spp)
 
@@ -53,7 +55,7 @@ frequency4, power4 = LombScargle(BJD, RV_HARPS).autopower(minimum_frequency=min_
 #                                                    maximum_frequency=max_f,
 #                                                    samples_per_peak=spp)
 
-frequency6, power6 = LombScargle(BJD, RV_FT_2012).autopower(minimum_frequency=min_f,
+frequency6, power6 = LombScargle(BJD, RV_FT_2012, RV_noise).autopower(minimum_frequency=min_f,
                                                    maximum_frequency=max_f,
                                                    samples_per_peak=spp)
 
