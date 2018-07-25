@@ -1,6 +1,6 @@
 '''
-Based on Demo_76920_celerite.py.
-Change to celerite
+No fitting individual offsets.
+Stop developping. 
 '''
 
 #==============================================================================

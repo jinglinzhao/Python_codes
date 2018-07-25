@@ -16,7 +16,6 @@ import numpy as np
 # all_rvs 	= np.genfromtxt('all_rvs_N102_outlier_removed.dat', dtype = None)
 all_rvs     = np.genfromtxt('all_rvs_N102_outlier_and_5MJ_removed.dat', dtype = None)
 
-
 for i in range(len(all_rvs)):
     all_rvs[i][2]     = (all_rvs[i][2]**2 + 7**2)**0.5 
 
@@ -221,10 +220,13 @@ aa[10,:]= [a10[i] for i in range(3)]
 np.savetxt('76920_MCMC_6sets_result.txt', aa, fmt='%.6f')
 
 
+
+
+aa = np.genfromtxt('76920_MCMC_6sets_5MJ_removed_0710/76920_MCMC_6sets_result-5MJ_removed.txt', dtype = None)
 P, tau, k, w, e0, off_aat, off_chiron, off_feros, off_mj1, off_mj3, off_fideos = aa[:,0]
 fit_curve = Model(P=np.log(P), tau=np.log(tau), k=np.log(k), w=w, e0=e0, off_aat=off_aat/100, off_chiron=off_chiron/100, 
                         off_feros=off_feros/100, off_mj1=off_mj1/100, off_mj3=off_mj3/100, off_fideos=off_fideos/100)
-t_fit   = np.linspace(min(RV_ALL[:,0])-20, max(RV_ALL[:,0]+20), num=10001, endpoint=True)
+t_fit   = np.linspace(min(RV_ALL[:,0])-300, max(RV_ALL[:,0]+300), num=10001, endpoint=True)
 y_fit   = fit_curve.get_value(np.array(t_fit))
 
 residual= fit_curve.get_value(np.array(x)) - np.array(y)
@@ -235,18 +237,87 @@ np.savetxt('residual_6set.txt', residual)
 
 
 plt.figure()
-plt.plot(t_fit, y_fit, label='MCMC fit')
+ax = plt.subplot(111)
+ax.axhline(y=0, color='k', ls='--', alpha=.5)
+plt.plot(t_fit, y_fit, alpha=.5)
 plt.errorbar(RV_AAT[:,0],   RV_AAT[:,1]-off_aat,        yerr=RV_AAT[:,2],   fmt=".", capsize=0, label='AAT')
 plt.errorbar(RV_CHIRON[:,0],RV_CHIRON[:,1]-off_chiron,  yerr=RV_CHIRON[:,2],fmt=".", capsize=0, label='CHIRON')
 plt.errorbar(RV_FEROS[:,0], RV_FEROS[:,1]-off_feros,    yerr=RV_FEROS[:,2], fmt=".", capsize=0, label='FEROS')
 plt.errorbar(RV_MJ1[:,0],   RV_MJ1[:,1]-off_mj1,        yerr=RV_MJ1[:,2],   fmt=".", capsize=0, label='MJ1')
 plt.errorbar(RV_MJ3[:,0],   RV_MJ3[:,1]-off_mj3,        yerr=RV_MJ3[:,2],   fmt=".", capsize=0, label='MJ3')
 plt.errorbar(RV_FIDEOS[:,0],RV_FIDEOS[:,1]-off_fideos,  yerr=RV_FIDEOS[:,2],fmt=".", capsize=0, label='FIDEOS')
-plt.ylabel("RV [m/s]")
+plt.ylabel("Radial velocity [m/s]")
 plt.xlabel("BJD - 2450000")
 plt.legend(loc="upper center")
 plt.savefig('76920_MCMC_6sets-3-MCMC_fit.png')
 plt.show()
+
+
+
+
+# convert x-axis to year number #
+year_AAT    = (RV_AAT[:,0] + 728956.75107372)/365.25
+year_CHIRON = (RV_CHIRON[:,0] + 728956.75107372)/365.25
+year_FEROS  = (RV_FEROS[:,0] + 728956.75107372)/365.25
+year_MJ1    = (RV_MJ1[:,0] + 728956.75107372)/365.25
+year_MJ3    = (RV_MJ3[:,0] + 728956.75107372)/365.25
+year_FIDEOS = (RV_FIDEOS[:,0] + 728956.75107372)/365.25
+plt.figure()
+ax = plt.subplot(111)
+ax.axhline(y=0, color='k', ls='--', alpha=.5)
+plt.plot((t_fit+728956.75107372)/365.25, y_fit, alpha=.5, label='Model')
+plt.errorbar(year_AAT,   RV_AAT[:,1]-off_aat,        yerr=RV_AAT[:,2],   fmt="o", capsize=2, label='AAT')
+plt.errorbar(year_CHIRON,RV_CHIRON[:,1]-off_chiron,  yerr=RV_CHIRON[:,2],fmt="o", capsize=2, label='CHIRON')
+plt.errorbar(year_FEROS, RV_FEROS[:,1]-off_feros,    yerr=RV_FEROS[:,2], fmt="o", capsize=2, label='FEROS')
+plt.errorbar(year_MJ1,   RV_MJ1[:,1]-off_mj1,        yerr=RV_MJ1[:,2],   fmt="o", capsize=2, label='MJ1')
+plt.errorbar(year_MJ3,   RV_MJ3[:,1]-off_mj3,        yerr=RV_MJ3[:,2],   fmt="o", capsize=2, label='MJ3')
+plt.errorbar(year_FIDEOS,RV_FIDEOS[:,1]-off_fideos,  yerr=RV_FIDEOS[:,2],fmt="o", capsize=2, label='FIDEOS')
+plt.ylabel("Radial velocity [m/s]")
+plt.xlabel("Year")
+plt.legend(loc="upper center")
+plt.savefig('76920_MCMC_6sets-3-MCMC_fit2.png', dpi=600)
+plt.show()
+
+
+
+# Plot 2 #
+day_AAT     = [((RV_AAT[i,0]-tau)/P-8)*P for i in range(len(RV_AAT[:,0]))]
+day_CHIRON  = [((RV_CHIRON[i,0]-tau)/P-8)*P for i in range(len(RV_CHIRON[:,0]))]
+day_FEROS   = [((RV_FEROS[i,0]-tau)/P-8)*P for i in range(len(RV_FEROS[:,0]))]
+day_MJ1     = [((RV_MJ1[i,0]-tau)/P-8)*P for i in range(len(RV_MJ1[:,0]))]
+day_MJ3     = [((RV_MJ3[i,0]-tau)/P-8)*P for i in range(len(RV_MJ3[:,0]))]
+day_FIDEOS  = [((RV_FIDEOS[i,0]-tau)/P-8)*P for i in range(len(RV_FIDEOS[:,0]))]
+day_fit     = ((t_fit-tau)/P-8)*P
+
+plt.figure()
+ax = plt.subplot(111)
+ax.axhline(y=0, color='k', ls='--', alpha=.5)
+plt.plot(day_fit, y_fit, alpha=.5, label='Model')
+plt.errorbar(day_AAT,   RV_AAT[:,1]-off_aat,        yerr=RV_AAT[:,2],   fmt="o", capsize=2, label='')
+plt.errorbar(day_CHIRON,RV_CHIRON[:,1]-off_chiron,  yerr=RV_CHIRON[:,2],fmt="o", capsize=2, label='CHIRON')
+plt.errorbar(day_FEROS, RV_FEROS[:,1]-off_feros,    yerr=RV_FEROS[:,2], fmt="o", capsize=2, label='FEROS')
+plt.errorbar(day_MJ1,   RV_MJ1[:,1]-off_mj1,        yerr=RV_MJ1[:,2],   fmt="o", capsize=2, label='MJ1')
+plt.errorbar(day_MJ3,   RV_MJ3[:,1]-off_mj3,        yerr=RV_MJ3[:,2],   fmt="o", capsize=2, label='MJ3')
+plt.errorbar(day_FIDEOS,RV_FIDEOS[:,1]-off_fideos,  yerr=RV_FIDEOS[:,2],fmt="o", capsize=2, label='FIDEOS')
+plt.plot(day_fit_old, y_fit_old, '-.', alpha=.5, label='Old prediction')
+plt.xlim(-45, 15)
+plt.ylabel("Radial velocity [m/s]")
+plt.xlabel("Day")
+plt.legend(loc="upper left")
+plt.savefig('76920_MCMC_6sets-3-MCMC_fit3.png', dpi=600)
+plt.show()
+
+
+fit_curve_old = Model(P=np.log(415.4), tau=np.log(4813.42), k=np.log(186.8), w=-0.1239183768915978, e0=0.856, off_aat=off_aat/100, off_chiron=off_chiron/100, 
+                        off_feros=off_feros/100, off_mj1=off_mj1/100, off_mj3=off_mj3/100, off_fideos=off_fideos/100)
+t_fit_old   = np.linspace(min(RV_ALL[:,0])-300, max(RV_ALL[:,0]+300), num=10001, endpoint=True)
+y_fit_old   = fit_curve_old.get_value(np.array(t_fit_old))
+day_fit_old = ((t_fit_old-tau)/P-8)*P
+
+
+
+
+
 
 
 if 0:
