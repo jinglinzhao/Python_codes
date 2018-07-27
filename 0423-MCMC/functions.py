@@ -28,3 +28,12 @@ def gran_gen(n_group, n_obs):
 
 
 
+def gaussian_smoothing(t, y, t_smooth, len_smooth):
+
+	y_smooth = np.zeros(len(y))
+
+	for i in range(len(t)):
+	    weight = np.exp(-(t_smooth[i]-t)**2/(2*len_smooth**2))
+	    y_smooth[i] = sum(y * weight) / sum(weight)
+
+	return y_smooth
