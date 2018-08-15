@@ -77,9 +77,9 @@ class Model(Model):
 
 def lnprior(theta):
     P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, P3, tau3, k3, w3, e3, offset = theta
-    if (0.5 < P1 < 0.7) and (-2 < k1 < 3) and (-np.pi < w1 < np.pi) and (0 < e1 < 0.3) and \
-       (0.6 < P2 < 0.8) and (-2 < k2 < 3) and (-np.pi < w2 < np.pi) and (0 < e2 < 0.3) and \
-       (0.7 < P3 < 0.9) and (-2 < k3 < 3) and (-np.pi < w3 < np.pi) and (0 < e3 < 0.3):
+    if (0.5 < P1 < 0.7) and (-2 < k1 < 3) and (-np.pi < w1 < np.pi) and (0 < e1 < 0.2) and \
+       (0.6 < P2 < 0.8) and (-2 < k2 < 3) and (-np.pi < w2 < np.pi) and (0 < e2 < 0.2) and \
+       (0.7 < P3 < 0.9) and (-2 < k3 < 3) and (-np.pi < w3 < np.pi) and (0 < e3 < 0.2):
         return 0.0
     return -np.inf
 
@@ -110,16 +110,15 @@ time_start  = time.time()
 print("Running first burn-in...")
 pos = [[0.6, 1., np.log(np.std(y)), 0, 0.1,\
         0.7, 1., np.log(np.std(y)), 0, 0.1,\
-        0.8, 1., np.log(np.std(y)), 0, 0.1, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
-pos, prob, state  = sampler.run_mcmc(pos, 5000)
+        0.8, 1., np.log(np.std(y)), 0, 0.1, 0.] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+pos, prob, state  = sampler.run_mcmc(pos, 3000)
 
 print("Running second burn-in...")
-pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
-pos, prob, state  = sampler.run_mcmc(pos, 5000)
+pos = pos[np.argmax(prob)] + 1e-2 * np.random.randn(nwalkers, ndim)
+pos, prob, state  = sampler.run_mcmc(pos, 3000)
 
 print("Running production...")
-pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
-sampler.run_mcmc(pos, 10000);
+sampler.run_mcmc(pos, 5000);
 
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))
@@ -130,7 +129,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-log_samples         = sampler.chain[:, 11000:, :].reshape((-1, ndim))
+log_samples         = sampler.chain[:, 6000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(log_samples)
 real_samples[:,0]   = real_samples[:,0]*10
 real_samples[:,5]   = real_samples[:,5]*10

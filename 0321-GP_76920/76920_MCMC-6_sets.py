@@ -220,8 +220,6 @@ aa[10,:]= [a10[i] for i in range(3)]
 np.savetxt('76920_MCMC_6sets_result.txt', aa, fmt='%.6f')
 
 
-
-
 aa = np.genfromtxt('76920_MCMC_6sets_5MJ_removed_0710/76920_MCMC_6sets_result-5MJ_removed.txt', dtype = None)
 P, tau, k, w, e0, off_aat, off_chiron, off_feros, off_mj1, off_mj3, off_fideos = aa[:,0]
 fit_curve = Model(P=np.log(P), tau=np.log(tau), k=np.log(k), w=w, e0=e0, off_aat=off_aat/100, off_chiron=off_chiron/100, 
