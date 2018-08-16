@@ -77,9 +77,12 @@ class Model(Model):
 
 def lnprior(theta):
     P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, P3, tau3, k3, w3, e3, offset = theta
-    if (0.5 < P1 < 0.7) and (-2 < k1 < 3) and (-np.pi < w1 < np.pi) and (0 < e1 < 0.3) and \
-       (0.6 < P2 < 0.8) and (-2 < k2 < 3) and (-np.pi < w2 < np.pi) and (0 < e2 < 0.3) and \
-       (0.7 < P3 < 0.9) and (-2 < k3 < 3) and (-np.pi < w3 < np.pi) and (0 < e3 < 0.3):
+    # if (0.5 < P1 < 0.7) and (0 < tau1) and (-2 < k1 < 3) and (-np.pi < w1 < np.pi) and (0 < e1 < 0.5) and \
+    #    (0.6 < P2 < 0.8) and (0 < tau2) and (-2 < k2 < 3) and (-np.pi < w2 < np.pi) and (0 < e2 < 0.5) and \
+    #    (0.7 < P3 < 0.9) and (0 < tau3) and (-2 < k3 < 3) and (-np.pi < w3 < np.pi) and (0 < e3 < 0.5):
+    if (0. < P1) and (0 < tau1) and (-2 < k1 < 3) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.5) and \
+       (0. < P2) and (0 < tau2) and (-2 < k2 < 3) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.5) and \
+       (0. < P3) and (0 < tau3) and (-2 < k3 < 3) and (-2*np.pi < w3 < 2*np.pi) and (0 < e3 < 0.5):       
         return 0.0
     return -np.inf
 
@@ -117,8 +120,11 @@ print("Running second burn-in...")
 pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
 pos, prob, state  = sampler.run_mcmc(pos, 5000)
 
-print("Running production...")
+print("Running third burn-in...")
 pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
+pos, prob, state  = sampler.run_mcmc(pos, 5000)
+
+print("Running production...")
 sampler.run_mcmc(pos, 10000);
 
 time_end    = time.time()

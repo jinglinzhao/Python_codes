@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 
 all_rvs = np.loadtxt('HD85390_quad.vels')
 x 		= all_rvs[:,0]
-idx     = x < 57300
-x 		= x[idx]
-y 		= all_rvs[idx,1]
-yerr 	= all_rvs[idx,2]
+x 		= x - min(x)
+y 		= all_rvs[:,1]
+yerr 	= all_rvs[:,2]
+
 
 import time
 import os
@@ -77,12 +77,9 @@ class Model(Model):
 
 def lnprior(theta):
     P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, P3, tau3, k3, w3, e3, offset = theta
-    # if (0.5 < P1 < 0.7) and (0 < tau1) and (-2 < k1 < 3) and (-np.pi < w1 < np.pi) and (0 < e1 < 0.5) and \
-    #    (0.6 < P2 < 0.8) and (0 < tau2) and (-2 < k2 < 3) and (-np.pi < w2 < np.pi) and (0 < e2 < 0.5) and \
-    #    (0.7 < P3 < 0.9) and (0 < tau3) and (-2 < k3 < 3) and (-np.pi < w3 < np.pi) and (0 < e3 < 0.5):
-    if (0. < P1) and (0 < tau1) and (-2 < k1 < 3) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.5) and \
-       (0. < P2) and (0 < tau2) and (-2 < k2 < 3) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.5) and \
-       (0. < P3) and (0 < tau3) and (-2 < k3 < 3) and (-2*np.pi < w3 < 2*np.pi) and (0 < e3 < 0.5):       
+    if (0.5 < P1 < 0.7) and (0 < tau1) and (-2 < k1 < 3) and (-np.pi < w1 < np.pi) and (0 < e1 < 0.3) and \
+       (0.6 < P2 < 0.8) and (0 < tau2) and (-2 < k2 < 3) and (-np.pi < w2 < np.pi) and (0 < e2 < 0.3) and \
+       (0.7 < P3 < 0.9) and (0 < tau3) and (-2 < k3 < 3) and (-np.pi < w3 < np.pi) and (0 < e3 < 0.3):
         return 0.0
     return -np.inf
 
