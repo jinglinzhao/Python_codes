@@ -10,7 +10,6 @@ from celerite.modeling import Model
 all_rvs     = np.loadtxt('HD85390_quad.vels')
 jitter_raw  = np.loadtxt('jitter_raw.txt')
 jitter_smooth = np.loadtxt('jitter_smooth.txt')
-jitter_smooth200 = np.loadtxt('jitter_smooth200.txt')
 
 x 		= all_rvs[:,0]
 idx     = x < 57300
@@ -125,8 +124,8 @@ def lnprior(theta):
     # if (0.5 < P1 < 0.7) and (0 < tau1) and (-2 < k1 < 3) and (-np.pi < w1 < np.pi) and (0 < e1 < 0.5) and \
     #    (0.6 < P2 < 0.8) and (0 < tau2) and (-2 < k2 < 3) and (-np.pi < w2 < np.pi) and (0 < e2 < 0.5) and \
     #    (0.7 < P3 < 0.9) and (0 < tau3) and (-2 < k3 < 3) and (-np.pi < w3 < np.pi) and (0 < e3 < 0.5):
-    if (0.3 < P1 < 0.5) and (0 < tau1 < 20) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.5) and \
-       (0.7 < P2 < 1.) and (-10 < tau2 < 20) and (0 < k2 < 0.1) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.5):
+    if (0. < P1) and (0 < tau1 < 20) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.4) and \
+       (0. < P2) and (-10 < tau2 < 20) and (0 < k2 < 0.1) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.4):
         return 0.0
     return -np.inf
 
@@ -178,14 +177,10 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, 11000:, :].reshape((-1, ndim))
-real_samples        = copy.copy(raw_samples)
+log_samples         = sampler.chain[:, 11000:, :].reshape((-1, ndim))
+real_samples        = copy.copy(log_samples)
 real_samples[:,0:3] = 100*real_samples[:,0:3]
 real_samples[:,5:8] = 100*real_samples[:,5:8]
-idx = real_samples[:,3] > 0
-real_samples[idx,3] = real_samples[idx, 3] - 2*np.pi
-idx = real_samples[:,8] < 0
-real_samples[idx,8] = real_samples[idx, 8] + 2*np.pi
 
 
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
@@ -234,12 +229,12 @@ np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
 
 
 P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset, alpha = aa[:,0]
-fit_curve   = Model(P1=P1/100, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
-                    P2=P2/100, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, offset=offset, alpha=alpha)
+fit_curve   = Model(P1=np.log(P1)/10, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
+                    P2=np.log(P2)/10, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, offset=offset, alpha=alpha)
 y_fit       = fit_curve.get_value(x)
 
-fit_curve2  = Model2(P1=P1/100, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
-                     P2=P2/100, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, offset=offset)
+fit_curve2  = Model2(P1=np.log(P1)/10, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
+                     P2=np.log(P2)/10, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, offset=offset)
 t_fit       = np.linspace(min(x), max(x), num=10001, endpoint=True)
 y_fit2      = fit_curve2.get_value(t_fit)
 
