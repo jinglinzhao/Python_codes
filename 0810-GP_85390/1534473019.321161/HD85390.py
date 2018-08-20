@@ -47,19 +47,19 @@ class Model(Model):
     def get_value(self, t):
 
         # Planet 1
-        M_anom1 = 2*np.pi/np.exp(self.P1*10) * (t - 100*self.tau1)
+        M_anom1 = 2*np.pi/np.exp(self.P1*10) * (t - np.exp(self.tau1))
         e_anom1 = solve_kep_eqn(M_anom1, self.e1)
         f1      = 2*np.arctan( np.sqrt((1+self.e1)/(1-self.e1))*np.tan(e_anom1*.5) )
         rv1     = np.exp(self.k1)*(np.cos(f1 + self.w1) + self.e1*np.cos(self.w1))
         
         # Planet 2
-        M_anom2 = 2*np.pi/np.exp(self.P2*10) * (t - 100*self.tau2)
+        M_anom2 = 2*np.pi/np.exp(self.P2*10) * (t - np.exp(self.tau2))
         e_anom2 = solve_kep_eqn(M_anom2, self.e2)
         f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
         rv2     = np.exp(self.k2)*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
         # Planet 3
-        M_anom3 = 2*np.pi/np.exp(self.P3*10) * (t - 100*self.tau3)
+        M_anom3 = 2*np.pi/np.exp(self.P3*10) * (t - np.exp(self.tau3))
         e_anom3 = solve_kep_eqn(M_anom3, self.e3)
         f3      = 2*np.arctan( np.sqrt((1+self.e3)/(1-self.e3))*np.tan(e_anom3*.5) )
         rv3     = np.exp(self.k3)*(np.cos(f3 + self.w3) + self.e3*np.cos(self.w3))
@@ -81,9 +81,9 @@ def lnprior(theta):
     # if (0.5 < P1 < 0.7) and (0 < tau1) and (-2 < k1 < 3) and (-np.pi < w1 < np.pi) and (0 < e1 < 0.5) and \
     #    (0.6 < P2 < 0.8) and (0 < tau2) and (-2 < k2 < 3) and (-np.pi < w2 < np.pi) and (0 < e2 < 0.5) and \
     #    (0.7 < P3 < 0.9) and (0 < tau3) and (-2 < k3 < 3) and (-np.pi < w3 < np.pi) and (0 < e3 < 0.5):
-    if (0. < P1) and (-30 < tau1 < 30) and (-2 < k1 < 3) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.8) and \
-       (0. < P2) and (-30 < tau2 < 30) and (-2 < k2 < 3) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.8) and \
-       (0. < P3) and (-30 < tau3 < 30) and (-2 < k3 < 3) and (-2*np.pi < w3 < 2*np.pi) and (0 < e3 < 0.8):       
+    if (0. < P1) and (0 < tau1 < 10) and (-2 < k1 < 3) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.8) and \
+       (0. < P2) and (0 < tau2 < 10) and (-2 < k2 < 3) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.8) and \
+       (0. < P3) and (0 < tau3 < 10) and (-2 < k3 < 3) and (-2*np.pi < w3 < 2*np.pi) and (0 < e3 < 0.8):       
         return 0.0
     return -np.inf
 
@@ -139,21 +139,19 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 import copy
 log_samples         = sampler.chain[:, 11000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(log_samples)
-real_samples[:,0]   = np.exp(real_samples[:,0]*10)
-real_samples[:,5]   = np.exp(real_samples[:,5]*10)
-real_samples[:,10]  = np.exp(real_samples[:,10]*10)
-real_samples[:,1]   = 100*real_samples[:,1]
-real_samples[:,6]   = 100*real_samples[:,6]
-real_samples[:,11]  = 100*real_samples[:,11]
-real_samples[:,2]   = np.exp(real_samples[:,2])
-real_samples[:,7]   = np.exp(real_samples[:,7])
-real_samples[:,12]  = np.exp(real_samples[:,12])
+real_samples[:,0]   = real_samples[:,0]*10
+real_samples[:,5]   = real_samples[:,5]*10
+real_samples[:,10]  = real_samples[:,10]*10
+real_samples[:,0:3] = np.exp(real_samples[:,0:3])
+real_samples[:,5:8] = np.exp(real_samples[:,5:8])
+real_samples[:,10:13] = np.exp(real_samples[:,10:13])
+
 
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
-labels_log=[r"$\frac{\log\ P1}{10}$", r"$\frac{T_{1}}{100}$", r"$\log\ K1$", r"$\omega1$", r"$e1$", 
-            r"$\frac{\log\ P2}{10}$", r"$\frac{T_{2}}{100}$", r"$\log\ K2$", r"$\omega2$", r"$e2$", 
-            r"$\frac{\log\ P3}{10}$", r"$\frac{T_{3}}{100}$", r"$\log\ K3$", r"$\omega3$", r"$e3$",
-            r"offset"]
+labels_log=[r"$\log\ P1$", r"$\log\ T_{1}$", r"$\log\ K1$", r"$\omega1$", r"$e1$", 
+            r"$\log\ P2$", r"$\log\ T_{2}$", r"$\log\ K2$", r"$\omega2$", r"$e2$", 
+            r"$\log\ P3$", r"$\log\ T_{3}$", r"$\log\ K3$", r"$\omega3$", r"$e3$",
+            r"$\frac{offset}{100}$"]
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)

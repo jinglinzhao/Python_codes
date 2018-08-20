@@ -7,8 +7,9 @@ from celerite.modeling import Model
 # Import data 
 #==============================================================================
 
-all_rvs = np.loadtxt('HD85390_quad.vels')
-jitter_raw = np.loadtxt('jitter_raw.txt')
+all_rvs     = np.loadtxt('HD85390_quad.vels')
+jitter_raw  = np.loadtxt('jitter_raw.txt')
+jitter_smooth = np.loadtxt('jitter_smooth.txt')
 
 x 		= all_rvs[:,0]
 idx     = x < 57300
@@ -94,7 +95,24 @@ class Model(Model):
 
         return rv1 + rv2 + self.offset + self.alpha * jitter1
 
+class Model2(Model):
+    parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'offset')
 
+    def get_value(self, t):
+
+        # Planet 1
+        M_anom1 = 2*np.pi/np.exp(self.P1*10) * (t - np.exp(self.tau1))
+        e_anom1 = solve_kep_eqn(M_anom1, self.e1)
+        f1      = 2*np.arctan( np.sqrt((1+self.e1)/(1-self.e1))*np.tan(e_anom1*.5) )
+        rv1     = np.exp(self.k1)*(np.cos(f1 + self.w1) + self.e1*np.cos(self.w1))
+        
+        # Planet 2
+        M_anom2 = 2*np.pi/np.exp(self.P2*10) * (t - np.exp(self.tau2))
+        e_anom2 = solve_kep_eqn(M_anom2, self.e2)
+        f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
+        rv2     = np.exp(self.k2)*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
+
+        return rv1 + rv2 + self.offset
 #==============================================================================
 # MCMC
 #==============================================================================
@@ -198,7 +216,7 @@ plt.savefig('HD85390-3-Corner.png')
 #==============================================================================
 
 a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
-aa = np.zeros((16,3))
+aa = np.zeros((12,3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
 aa[2,:] = [a2[i] for i in range(3)]
@@ -218,18 +236,23 @@ np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
 P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset, alpha = aa[:,0]
 fit_curve   = Model(P1=np.log(P1)/10, tau1=np.log(tau1), k1=np.log(k1), w1=w1, e1=e1, 
                     P2=np.log(P2)/10, tau2=np.log(tau2), k2=np.log(k2), w2=w2, e2=e2, offset=offset, alpha=alpha)
-t_fit       = np.linspace(min(x), max(x), num=10001, endpoint=True)
-y_fit       = fit_curve.get_value(np.array(t_fit))
+y_fit       = fit_curve.get_value(x)
 
-residual    = fit_curve.get_value(x) - y
+fit_curve2  = Model2(P1=np.log(P1)/10, tau1=np.log(tau1), k1=np.log(k1), w1=w1, e1=e1, 
+                     P2=np.log(P2)/10, tau2=np.log(tau2), k2=np.log(k2), w2=w2, e2=e2, offset=offset)
+t_fit       = np.linspace(min(x), max(x), num=10001, endpoint=True)
+y_fit2      = fit_curve2.get_value(t_fit)
+
+residual    = y_fit - y
 chi2        = sum(residual**2 / yerr**2)
 rms         = np.sqrt(np.mean(residual**2))
-
 
 fig = plt.figure(figsize=(10, 7))
 frame1 = fig.add_axes((.15,.3,.8,.6))
 frame1.axhline(y=0, color='k', ls='--', alpha=.3)
-plt.plot(t_fit, y_fit, alpha=.5)
+plt.plot(t_fit, y_fit2, 'b', alpha=.5)
+plt.plot(x, y_fit, 'bo', alpha=.5)
+plt.plot(x, alpha*jitter1, 'ro', alpha=.5)
 plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
 plt.ylabel("Radial velocity [m/s]")
 
