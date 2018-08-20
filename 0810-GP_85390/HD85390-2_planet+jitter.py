@@ -35,7 +35,6 @@ plt.savefig('HD85390-1-RV.png')
 
 truth_P1 = 400
 truth_P2 = 850
-truth_P3 = 3300
 
 
 #==============================================================================
@@ -54,6 +53,7 @@ frequency1, power1 = LombScargle(x, jitter_raw, yerr).autopower(minimum_frequenc
                                                             maximum_frequency=max_f,
                                                             samples_per_peak=spp)
 
+plt.figure()
 ax = plt.subplot(111)
 ax.set_xscale('log')
 ax.axhline(y=0, color='k')
@@ -65,12 +65,9 @@ plt.plot(1/frequency1, power1, '--', label='Jitter')
 plt.title('Lomb-Scargle Periodogram')
 plt.xlabel("Period [d]")
 plt.ylabel("Power")
-# plt.xlim([0, /25])
 plt.legend()
 plt.savefig('HD85390-0-Periodogram.png')
-plt.show()
-
-
+# plt.show()
 
 
 #==============================================================================
@@ -93,7 +90,7 @@ class Model(Model):
         f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
         rv2     = np.exp(self.k2)*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
-        return rv1 + rv2 + self.offset + self.alpha * jitter1
+        return rv1 + rv2 + self.offset + self.alpha * jitter_smooth
 
 class Model2(Model):
     parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'offset')
@@ -189,8 +186,8 @@ real_samples[:,5:8] = np.exp(real_samples[:,5:8])
 
 
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
-labels_log=[r"$\log\ P1$", r"$\log\ T_{1}$", r"$\log\ K1$", r"$\omega1$", r"$e1$", 
-            r"$\log\ P2$", r"$\log\ T_{2}$", r"$\log\ K2$", r"$\omega2$", r"$e2$", 
+labels_log=[r"$\frac{\log\ P1}{10}$", r"$\log\ T_{1}$", r"$\log\ K1$", r"$\omega1$", r"$e1$", 
+            r"$\frac{\log\ P2}{10}$", r"$\log\ T_{2}$", r"$\log\ K2$", r"$\omega2$", r"$e2$", 
             "offset", r"$\alpha$"]
 for i in range(ndim):
     ax = axes[i]
@@ -252,7 +249,7 @@ frame1 = fig.add_axes((.15,.3,.8,.6))
 frame1.axhline(y=0, color='k', ls='--', alpha=.3)
 plt.plot(t_fit, y_fit2, 'b', alpha=.5)
 plt.plot(x, y_fit, 'bo', alpha=.5)
-plt.plot(x, alpha*jitter1, 'ro', alpha=.5)
+plt.plot(x, alpha*jitter_smooth, 'ro', alpha=.5)
 plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
 plt.ylabel("Radial velocity [m/s]")
 
