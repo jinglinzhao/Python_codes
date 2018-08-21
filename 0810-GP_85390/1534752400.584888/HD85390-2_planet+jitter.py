@@ -91,7 +91,7 @@ class Model(Model):
         f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
         rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
-        return rv1 + rv2 + self.offset + self.alpha * jitter_smooth200
+        return rv1 + rv2 + self.offset + self.alpha * jitter_smooth
 
 class Model2(Model):
     parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'offset')
@@ -252,7 +252,7 @@ frame1 = fig.add_axes((.15,.3,.8,.6))
 frame1.axhline(y=0, color='k', ls='--', alpha=.3)
 plt.plot(t_fit, y_fit2, 'b', alpha=.5, label='two planets')
 plt.plot(x, y_fit, 'bo', alpha=.5, label='two planets + smoothed jitter')
-plt.plot(x, alpha*jitter_smooth200, 'ro', alpha=.5, label='smoothed jitter')
+plt.plot(x, alpha*jitter_smooth, 'ro', alpha=.5, label='smoothed jitter')
 plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0, label='HARPS RV')
 plt.legend()
 plt.ylabel("Radial velocity [m/s]")
