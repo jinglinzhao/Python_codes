@@ -74,19 +74,19 @@ class Model(Model):
     def get_value(self, t):
 
         # Planet 1
-        M_anom1 = 2*np.pi/(100*self.P1) * (t - 1000*self.tau1)
+        M_anom1 = 2*np.pi/(100*self.P1) * (t - 100*self.tau1)
         e_anom1 = solve_kep_eqn(M_anom1, self.e1)
         f1      = 2*np.arctan( np.sqrt((1+self.e1)/(1-self.e1))*np.tan(e_anom1*.5) )
         rv1     = 100*self.k1*(np.cos(f1 + self.w1) + self.e1*np.cos(self.w1))
         
         # Planet 2
-        M_anom2 = 2*np.pi/(100*self.P2) * (t - 1000*self.tau2)
+        M_anom2 = 2*np.pi/(100*self.P2) * (t - 100*self.tau2)
         e_anom2 = solve_kep_eqn(M_anom2, self.e2)
         f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
         rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
         # Planet 3
-        M_anom3 = 2*np.pi/(100*self.P3) * (t - 1000*self.tau3)
+        M_anom3 = 2*np.pi/(100*self.P3) * (t - 100*self.tau3)
         e_anom3 = solve_kep_eqn(M_anom3, self.e3)
         f3      = 2*np.arctan( np.sqrt((1+self.e3)/(1-self.e3))*np.tan(e_anom3*.5) )
         rv3     = 100*self.k3*(np.cos(f3 + self.w3) + self.e3*np.cos(self.w3))
@@ -104,9 +104,9 @@ class Model(Model):
 
 def lnprior(theta):
     P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, P3, tau3, k3, w3, e3, offset = theta
-    if (3. < P1 < 10.) and (-1 < tau1 < 1) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and \
-       (3. < P2 < 10.) and (-1 < tau2 < 1) and (0 < k2 < 0.1) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.9) and \
-       (-30 < tau3 < 30) and (0 < k3 < 0.1) and (-2*np.pi < w3 < 2*np.pi) and (0 < e3 < 0.9):
+    if (3. < P1 < 10.) and (-30 < tau1 < 30) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and \
+       (3. < P2 < 10.) and (-30 < tau2 < 30) and (0 < k2 < 0.1) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.9) and \
+       (-300 < tau3 < 300) and (0 < k3 < 0.1) and (-2*np.pi < w3 < 2*np.pi) and (0 < e3 < 0.9):
         return 0.0
     return -np.inf
 
@@ -138,18 +138,18 @@ print("Running first burn-in...")
 pos = [[7., 1., np.log(np.std(y))/100, 0, 0.4,\
         8., 1., np.log(np.std(y))/100, 0, 0.4,\
         120., 1., np.log(np.std(y))/100, 0, 0.4, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
-pos, prob, state  = sampler.run_mcmc(pos, 5000)
+pos, prob, state  = sampler.run_mcmc(pos, 3000)
 
 print("Running second burn-in...")
 pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
-pos, prob, state  = sampler.run_mcmc(pos, 3000)
+pos, prob, state  = sampler.run_mcmc(pos, 2000)
 
 print("Running third burn-in...")
 pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
-pos, prob, state  = sampler.run_mcmc(pos, 3000)
+pos, prob, state  = sampler.run_mcmc(pos, 2000)
 
 print("Running production...")
-sampler.run_mcmc(pos, 5000);
+sampler.run_mcmc(pos, 3000);
 
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))
@@ -160,24 +160,17 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, 8000:, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, 5000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
-real_samples[:,1]   = 10*real_samples[:,1]
-real_samples[:,6]   = 10*real_samples[:,6]
-real_samples[:,11]  = 10*real_samples[:,11]
 real_samples[:,0:3] = 100*real_samples[:,0:3]
 real_samples[:,5:8] = 100*real_samples[:,5:8]
 real_samples[:,10:13] = 100*real_samples[:,10:13]
-
-# real_samples[:,1]   = [real_samples[i,1] - int(real_samples[i,1] / 424.56) * 424.56 for i in range(len(real_samples[:,1]))]
-
-
-# idx = real_samples[:,3] > 0
-# real_samples[idx,3] = real_samples[idx, 3] - 2*np.pi
+idx = real_samples[:,3] > 0
+real_samples[idx,3] = real_samples[idx, 3] - 2*np.pi
 idx = real_samples[:,8] < 0
 real_samples[idx,8] = real_samples[idx, 8] + 2*np.pi
-# idx = real_samples[:,13] < 0
-# real_samples[idx,13] = real_samples[idx, 13] + 2*np.pi
+idx = real_samples[:,13] < 0
+real_samples[idx,13] = real_samples[idx, 13] + 2*np.pi
 
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
 labels_log=[r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{100}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
@@ -229,9 +222,9 @@ np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
 
 
 P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, P3, tau3, k3, w3, e3, offset = aa[:,0]
-fit_curve   = Model(P1=P1/100, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, 
-                    P2=P2/100, tau2=tau2/1000, k2=k2/100, w2=w2, e2=e2, 
-                    P3=P3/100, tau3=tau3/1000, k3=k3/100, w3=w3, e3=e3, offset=offset)
+fit_curve   = Model(P1=P1/100, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
+                    P2=P2/100, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, 
+                    P3=P3/100, tau3=tau3/100, k3=k3/100, w3=w3, e3=e3, offset=offset)
 t_fit       = np.linspace(min(x), max(x), num=10001, endpoint=True)
 y_fit       = fit_curve.get_value(np.array(t_fit))
 

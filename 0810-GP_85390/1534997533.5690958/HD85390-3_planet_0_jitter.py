@@ -104,8 +104,8 @@ class Model(Model):
 
 def lnprior(theta):
     P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, P3, tau3, k3, w3, e3, offset = theta
-    if (3. < P1 < 10.) and (-1 < tau1 < 1) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and \
-       (3. < P2 < 10.) and (-1 < tau2 < 1) and (0 < k2 < 0.1) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.9) and \
+    if (3. < P1 < 10.) and (-3 < tau1 < 3) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and \
+       (3. < P2 < 10.) and (-3 < tau2 < 3) and (0 < k2 < 0.1) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.9) and \
        (-30 < tau3 < 30) and (0 < k3 < 0.1) and (-2*np.pi < w3 < 2*np.pi) and (0 < e3 < 0.9):
         return 0.0
     return -np.inf
@@ -168,10 +168,6 @@ real_samples[:,11]  = 10*real_samples[:,11]
 real_samples[:,0:3] = 100*real_samples[:,0:3]
 real_samples[:,5:8] = 100*real_samples[:,5:8]
 real_samples[:,10:13] = 100*real_samples[:,10:13]
-
-# real_samples[:,1]   = [real_samples[i,1] - int(real_samples[i,1] / 424.56) * 424.56 for i in range(len(real_samples[:,1]))]
-
-
 # idx = real_samples[:,3] > 0
 # real_samples[idx,3] = real_samples[idx, 3] - 2*np.pi
 idx = real_samples[:,8] < 0
@@ -229,9 +225,9 @@ np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
 
 
 P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, P3, tau3, k3, w3, e3, offset = aa[:,0]
-fit_curve   = Model(P1=P1/100, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, 
-                    P2=P2/100, tau2=tau2/1000, k2=k2/100, w2=w2, e2=e2, 
-                    P3=P3/100, tau3=tau3/1000, k3=k3/100, w3=w3, e3=e3, offset=offset)
+fit_curve   = Model(P1=P1/100, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
+                    P2=P2/100, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, 
+                    P3=P3/100, tau3=tau3/100, k3=k3/100, w3=w3, e3=e3, offset=offset)
 t_fit       = np.linspace(min(x), max(x), num=10001, endpoint=True)
 y_fit       = fit_curve.get_value(np.array(t_fit))
 
