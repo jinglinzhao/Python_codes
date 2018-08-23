@@ -24,25 +24,23 @@ import os
 import shutil
 time0   = time.time()
 os.makedirs(str(time0))
-shutil.copy('HD85390-2_planet+jitter.py', str(time0)+'/HD85390-2_planet+jitter.py')  
+shutil.copy('HD85390-2_planet_0_jitter.py', str(time0)+'/HD85390-2_planet_0_jitter.py')  
 os.chdir(str(time0))
 
 plt.figure()
 plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
+# plt.errorbar(x, jitter_smooth200, yerr=yerr, fmt="ro", capsize=0)
 plt.ylabel("RV [m/s]")
 plt.xlabel("Shifted JD [d]")
 plt.savefig('HD85390-1-RV.png')
 # plt.show()
-
-truth_P1 = 400
-truth_P2 = 850
 
 
 #==============================================================================
 # Lomb-Scargle periodogram 
 #==============================================================================
 from astropy.stats import LombScargle
-min_f   = 1/5000
+min_f   = 1/15000
 max_f   = 1
 spp     = 10
 
@@ -75,25 +73,6 @@ plt.savefig('HD85390-0-Periodogram.png')
 # Model
 #==============================================================================
 class Model(Model):
-    parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'offset', 'alpha')
-
-    def get_value(self, t):
-
-        # Planet 1
-        M_anom1 = 2*np.pi/(100*self.P1) * (t - 100*self.tau1)
-        e_anom1 = solve_kep_eqn(M_anom1, self.e1)
-        f1      = 2*np.arctan( np.sqrt((1+self.e1)/(1-self.e1))*np.tan(e_anom1*.5) )
-        rv1     = 100*self.k1*(np.cos(f1 + self.w1) + self.e1*np.cos(self.w1))
-        
-        # Planet 2
-        M_anom2 = 2*np.pi/(100*self.P2) * (t - 100*self.tau2)
-        e_anom2 = solve_kep_eqn(M_anom2, self.e2)
-        f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
-        rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
-
-        return rv1 + rv2 + self.offset + self.alpha * jitter_smooth200
-
-class Model2(Model):
     parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'offset')
 
     def get_value(self, t):
@@ -111,6 +90,7 @@ class Model2(Model):
         rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
         return rv1 + rv2 + self.offset
+
 #==============================================================================
 # MCMC
 #==============================================================================
@@ -121,20 +101,17 @@ class Model2(Model):
 # As prior, we assume an 'uniform' prior (i.e. constant prob. density)
 
 def lnprior(theta):
-    P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset, alpha = theta
-    # if (0.5 < P1 < 0.7) and (0 < tau1) and (-2 < k1 < 3) and (-np.pi < w1 < np.pi) and (0 < e1 < 0.5) and \
-    #    (0.6 < P2 < 0.8) and (0 < tau2) and (-2 < k2 < 3) and (-np.pi < w2 < np.pi) and (0 < e2 < 0.5) and \
-    #    (0.7 < P3 < 0.9) and (0 < tau3) and (-2 < k3 < 3) and (-np.pi < w3 < np.pi) and (0 < e3 < 0.5):
-    if (3. < P1 < 5.) and (0 < tau1 < 20) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.5) and \
-       (7. < P2 < 10.) and (-10 < tau2 < 20) and (0 < k2 < 0.1) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.5):
+    P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset = theta
+    if (3. < P1 < 10.) and (0 < tau1 < 30) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and \
+       (0 < tau2 < 300) and (0 < k2 < 0.1) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.9):
         return 0.0
     return -np.inf
 
 # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
 def lnlike(theta, x, y, yerr):
-    P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset, alpha = theta
+    P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset = theta
     fit_curve   = Model(P1=P1, tau1=tau1, k1=k1, w1=w1, e1=e1, 
-                        P2=P2, tau2=tau2, k2=k2, w2=w2, e2=e2, offset=offset, alpha=alpha)
+                        P2=P2, tau2=tau2, k2=k2, w2=w2, e2=e2, offset=offset)
     y_fit       = fit_curve.get_value(x)
     return -0.5*(np.sum( ((y-y_fit)/yerr)**2))
 
@@ -146,7 +123,7 @@ def lnprob(theta, x, y, yerr):
 
 
 import emcee
-ndim = 12
+ndim = 11
 nwalkers = 32
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y, yerr), threads=14)
 
@@ -154,20 +131,20 @@ import time
 time_start  = time.time()
 
 print("Running first burn-in...")
-pos = [[4., 1., np.log(np.std(y))/100, 0, 0.1,\
-        8., 1., np.log(np.std(y))/100, 0, 0.1, 0., 1] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
-pos, prob, state  = sampler.run_mcmc(pos, 5000)
+pos = [[7., 1., np.log(np.std(y))/100, 0, 0.4,\
+        120., 1., np.log(np.std(y))/100, 0, 0.4, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+pos, prob, state  = sampler.run_mcmc(pos, 3000)
 
 print("Running second burn-in...")
 pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
-pos, prob, state  = sampler.run_mcmc(pos, 5000)
+pos, prob, state  = sampler.run_mcmc(pos, 2000)
 
 print("Running third burn-in...")
 pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
-pos, prob, state  = sampler.run_mcmc(pos, 5000)
+pos, prob, state  = sampler.run_mcmc(pos, 2000)
 
 print("Running production...")
-sampler.run_mcmc(pos, 10000);
+sampler.run_mcmc(pos, 3000);
 
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))
@@ -178,7 +155,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, 11000:, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, 5000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
 real_samples[:,0:3] = 100*real_samples[:,0:3]
 real_samples[:,5:8] = 100*real_samples[:,5:8]
@@ -191,7 +168,7 @@ real_samples[idx,8] = real_samples[idx, 8] + 2*np.pi
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
 labels_log=[r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{100}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
             r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{100}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
-            "offset", r"$\alpha$"]
+            "offset"]
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -205,7 +182,7 @@ plt.savefig('HD85390-2-Trace.png')
 
 
 import corner
-labels=[r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", "offset", r"$\alpha$"]
+labels=[r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", "offset"]
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
 plt.savefig('HD85390-3-Corner.png')
 # plt.show()
@@ -215,8 +192,8 @@ plt.savefig('HD85390-3-Corner.png')
 # Output
 #==============================================================================
 
-a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
-aa = np.zeros((12,3))
+a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
+aa = np.zeros((11,3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
 aa[2,:] = [a2[i] for i in range(3)]
@@ -228,30 +205,27 @@ aa[7,:] = [a7[i] for i in range(3)]
 aa[8,:] = [a8[i] for i in range(3)]
 aa[9,:] = [a9[i] for i in range(3)]
 aa[10,:]= [a10[i] for i in range(3)]
-aa[11,:]= [a11[i] for i in range(3)]
 np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
 
 
-P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset, alpha = aa[:,0]
-fit_curve   = Model(P1=P1/100, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
-                    P2=P2/100, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, offset=offset, alpha=alpha)
-y_fit       = fit_curve.get_value(x)
-
-fit_curve2  = Model2(P1=P1/100, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
-                     P2=P2/100, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, offset=offset)
-t_fit       = np.linspace(min(x), max(x), num=10001, endpoint=True)
-y_fit2      = fit_curve2.get_value(t_fit)
-
-residual    = y_fit - y
-chi2        = sum(residual**2 / yerr**2)
-rms         = np.sqrt(np.mean(residual**2))
-
+P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset = aa[:,0]
 fig = plt.figure(figsize=(10, 7))
 frame1 = fig.add_axes((.15,.3,.8,.6))
 frame1.axhline(y=0, color='k', ls='--', alpha=.3)
-plt.plot(t_fit, y_fit2, 'b', alpha=.5, label='two planets')
-plt.plot(x, y_fit, 'bo', alpha=.5, label='two planets + smoothed jitter')
-plt.plot(x, alpha*jitter_smooth200, 'ro', alpha=.5, label='smoothed jitter')
+t_sample    = np.linspace(min(x), max(x), num=10001, endpoint=True)
+# Planet 1 #
+Planet1     = Model(P1=P1/100, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
+                    P2=P2/100, tau2=tau2/100, k2=0, w2=w2, e2=e2, offset=0)
+y1          = Planet1.get_value(t_sample)
+plt.plot(t_sample, y1, 'b-.', alpha=.3, label='Planet1')
+# Planet 2 #
+Planet2     = Model(P1=P1/100, tau1=tau1/100, k1=0, w1=w1, e1=e1, 
+                    P2=P2/100, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, offset=offset)
+y2          = Planet2.get_value(t_sample)
+plt.plot(t_sample, y2, 'b--', alpha=.3, label='Planet2')
+# Planet1 + Planet2 #
+y12         = y1 + y2
+plt.plot(t_sample, y12, 'b-', alpha=.5, label='Planet1+Planet2')
 plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0, label='HARPS RV')
 plt.legend()
 plt.ylabel("Radial velocity [m/s]")
@@ -262,8 +236,13 @@ plt.errorbar(x, residual, yerr=yerr, fmt=".k", capsize=0)
 plt.xlabel("BJD - 2400000")
 plt.ylabel('Residual [m/s]')
 plt.savefig('HD85390-4-MCMC_fit.png')
-
 plt.close("all")
+
+residual    = y12 - y
+chi2        = sum(residual**2 / yerr**2)
+rms         = np.sqrt(np.mean(residual**2))
+wrms        = np.sqrt(sum((residual/yerr)**2) / sum(1/yerr**2))
+
 
 os.chdir('..')
 

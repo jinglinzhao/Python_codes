@@ -24,11 +24,12 @@ import os
 import shutil
 time0   = time.time()
 os.makedirs(str(time0))
-shutil.copy('HD85390-2_planet+jitter.py', str(time0)+'/HD85390-2_planet+jitter.py')  
+shutil.copy('HD85390-2_planet_high_e.py', str(time0)+'/HD85390-2_planet_high_e.py')  
 os.chdir(str(time0))
 
 plt.figure()
 plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
+# plt.errorbar(x, jitter_smooth200, yerr=yerr, fmt="ro", capsize=0)
 plt.ylabel("RV [m/s]")
 plt.xlabel("Shifted JD [d]")
 plt.savefig('HD85390-1-RV.png')
@@ -42,7 +43,7 @@ truth_P2 = 850
 # Lomb-Scargle periodogram 
 #==============================================================================
 from astropy.stats import LombScargle
-min_f   = 1/5000
+min_f   = 1/15000
 max_f   = 1
 spp     = 10
 
@@ -91,7 +92,7 @@ class Model(Model):
         f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
         rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
-        return rv1 + rv2 + self.offset + self.alpha * jitter_smooth200
+        return rv1 + rv2 + self.offset + self.alpha * jitter_smooth
 
 class Model2(Model):
     parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'offset')
@@ -122,11 +123,8 @@ class Model2(Model):
 
 def lnprior(theta):
     P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset, alpha = theta
-    # if (0.5 < P1 < 0.7) and (0 < tau1) and (-2 < k1 < 3) and (-np.pi < w1 < np.pi) and (0 < e1 < 0.5) and \
-    #    (0.6 < P2 < 0.8) and (0 < tau2) and (-2 < k2 < 3) and (-np.pi < w2 < np.pi) and (0 < e2 < 0.5) and \
-    #    (0.7 < P3 < 0.9) and (0 < tau3) and (-2 < k3 < 3) and (-np.pi < w3 < np.pi) and (0 < e3 < 0.5):
-    if (3. < P1 < 5.) and (0 < tau1 < 20) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.5) and \
-       (7. < P2 < 10.) and (-10 < tau2 < 20) and (0 < k2 < 0.1) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.5):
+    if (3. < P1 < 10.) and (0 < tau1 < 20) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and \
+       (100. < P2 < 150.) and (0 < tau1 < 300) and (0 < k2 < 0.1) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.9):
         return 0.0
     return -np.inf
 
@@ -154,20 +152,20 @@ import time
 time_start  = time.time()
 
 print("Running first burn-in...")
-pos = [[4., 1., np.log(np.std(y))/100, 0, 0.1,\
-        8., 1., np.log(np.std(y))/100, 0, 0.1, 0., 1] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+pos = [[7., 1., np.log(np.std(y))/100, 0, 0.4,\
+        120., 1., np.log(np.std(y))/100, 0, 0.4, 0., 1] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
 pos, prob, state  = sampler.run_mcmc(pos, 5000)
 
 print("Running second burn-in...")
 pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
-pos, prob, state  = sampler.run_mcmc(pos, 5000)
+pos, prob, state  = sampler.run_mcmc(pos, 3000)
 
 print("Running third burn-in...")
 pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
-pos, prob, state  = sampler.run_mcmc(pos, 5000)
+pos, prob, state  = sampler.run_mcmc(pos, 3000)
 
 print("Running production...")
-sampler.run_mcmc(pos, 10000);
+sampler.run_mcmc(pos, 5000);
 
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))

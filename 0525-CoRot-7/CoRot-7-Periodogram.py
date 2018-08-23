@@ -4,14 +4,13 @@ from astropy.stats import LombScargle
 import matplotlib.pyplot as plt
 
 
-
-
+# test only the jitter of 2012 # 
 
 
 BJD 		= np.loadtxt('MJD_2012.txt')
 Jitter 		= np.loadtxt('Jitter_model_2012.txt')
 RV_HARPS 	= np.loadtxt('RV_HARPS_2012.txt')
-RV_FT_2012 	= np.loadtxt('RV_FT_2012.txt')
+# RV_FT_2012 	= np.loadtxt('RV_FT_2012.txt')
 RV_noise= np.loadtxt('RV_noise_2012.txt')
 
 
@@ -55,9 +54,9 @@ frequency4, power4 = LombScargle(BJD, RV_HARPS, RV_noise).autopower(minimum_freq
 #                                                    maximum_frequency=max_f,
 #                                                    samples_per_peak=spp)
 
-frequency6, power6 = LombScargle(BJD, RV_FT_2012, RV_noise).autopower(minimum_frequency=min_f,
-                                                   maximum_frequency=max_f,
-                                                   samples_per_peak=spp)
+# frequency6, power6 = LombScargle(BJD, RV_FT_2012, RV_noise).autopower(minimum_frequency=min_f,
+#                                                    maximum_frequency=max_f,
+#                                                    samples_per_peak=spp)
 
 ax = plt.subplot(111)
 ax.set_xscale('log')
@@ -73,7 +72,7 @@ plt.plot(1/frequency2, -power2, '--', label='Jitter Model bin')
 plt.plot(1/frequency3, -power3, label='GP bin')
 plt.plot(1/frequency4, power4, label='RV_HARPS', linewidth=2.0)
 # plt.plot(1/frequency5, power5, label='Correction', linewidth=2.0)
-plt.plot(1/frequency6, power6, label='RV_FT', linewidth=2.0)
+# plt.plot(1/frequency6, power6, label='RV_FT', linewidth=2.0)
 plt.xlim([0, 25])
 plt.legend()
 plt.show()
