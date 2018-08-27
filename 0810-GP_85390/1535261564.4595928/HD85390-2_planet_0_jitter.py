@@ -230,15 +230,6 @@ plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0, label='HARPS RV')
 plt.legend()
 plt.ylabel("Radial velocity [m/s]")
 
-fit_curve   = Model(P1=P1/100, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
-                    P2=P2/100, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, offset=offset)
-y_fit       = fit_curve.get_value(x)
-
-residual    = y_fit - y
-chi2        = sum(residual**2 / yerr**2)
-rms         = np.sqrt(np.mean(residual**2))
-wrms        = np.sqrt(sum((residual/yerr)**2) / sum(1/yerr**2))
-
 frame2  = fig.add_axes((.15,.1,.8,.2))   
 frame2.axhline(y=0, color='k', ls='--', alpha=.3)
 plt.errorbar(x, residual, yerr=yerr, fmt=".k", capsize=0)
@@ -246,6 +237,11 @@ plt.xlabel("BJD - 2400000")
 plt.ylabel('Residual [m/s]')
 plt.savefig('HD85390-4-MCMC_fit.png')
 plt.close("all")
+
+residual    = y12 - y
+chi2        = sum(residual**2 / yerr**2)
+rms         = np.sqrt(np.mean(residual**2))
+wrms        = np.sqrt(sum((residual/yerr)**2) / sum(1/yerr**2))
 
 
 os.chdir('..')

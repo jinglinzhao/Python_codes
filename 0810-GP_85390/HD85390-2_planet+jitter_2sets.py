@@ -10,13 +10,11 @@ from celerite.modeling import Model
 all_rvs     = np.loadtxt('HD85390_quad.vels')
 jitter_raw  = np.loadtxt('jitter_raw.txt')
 jitter_smooth = np.loadtxt('jitter_smooth.txt')
-jitter_smooth200 = np.loadtxt('jitter_smooth200.txt')
+# jitter_smooth200 = np.loadtxt('jitter_smooth200.txt')
 
-x 		= all_rvs[:,0]
-idx     = x < 57300
-x 		= x[idx]
-y 		= all_rvs[idx,1]
-yerr 	= all_rvs[idx,2]
+x       = all_rvs[:,0]
+y       = (RV_HARPS-np.mean(RV_HARPS))*1000
+yerr    = all_rvs[:,2]
 
 
 import time
@@ -24,7 +22,7 @@ import os
 import shutil
 time0   = time.time()
 os.makedirs(str(time0))
-shutil.copy('HD85390-2_planet_0_jitter.py', str(time0)+'/HD85390-2_planet_0_jitter.py')  
+shutil.copy('HD85390-2_planet+jitter_2sets.py', str(time0)+'/HD85390-2_planet+jitter_2sets.py')  
 os.chdir(str(time0))
 
 plt.figure()
@@ -73,23 +71,28 @@ plt.savefig('HD85390-0-Periodogram.png')
 # Model
 #==============================================================================
 class Model(Model):
-    parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'offset')
+    parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'offset1', 'offset2', 'alpha')
 
     def get_value(self, t):
 
         # Planet 1
-        M_anom1 = 2*np.pi/(100*self.P1) * (t - 100*self.tau1)
+        M_anom1 = 2*np.pi/(100*self.P1) * (t - 1000*self.tau1)
         e_anom1 = solve_kep_eqn(M_anom1, self.e1)
         f1      = 2*np.arctan( np.sqrt((1+self.e1)/(1-self.e1))*np.tan(e_anom1*.5) )
         rv1     = 100*self.k1*(np.cos(f1 + self.w1) + self.e1*np.cos(self.w1))
         
         # Planet 2
-        M_anom2 = 2*np.pi/(100*self.P2) * (t - 100*self.tau2)
+        M_anom2 = 2*np.pi/(100*self.P2) * (t - 1000*self.tau2)
         e_anom2 = solve_kep_eqn(M_anom2, self.e2)
         f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
         rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
-        return rv1 + rv2 + self.offset
+        offset      = np.zeros(len(t))
+        idx         = t < 57300
+        offset[idx] = self.offset1
+        offset[~idx]= self.offset2
+
+        return rv1 + rv2 + offset + self.alpha * jitter_smooth
 
 #==============================================================================
 # MCMC
@@ -101,17 +104,17 @@ class Model(Model):
 # As prior, we assume an 'uniform' prior (i.e. constant prob. density)
 
 def lnprior(theta):
-    P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset = theta
-    if (3. < P1 < 10.) and (0 < tau1 < 30) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and \
-       (0 < tau2 < 300) and (0 < k2 < 0.1) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.9):
+    P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2, alpha = theta
+    if (6.5 < P1 < 9.0) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and \
+       (0. < k2 < 0.2) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.9):       
         return 0.0
     return -np.inf
 
 # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
 def lnlike(theta, x, y, yerr):
-    P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset = theta
+    P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset, alpha = theta
     fit_curve   = Model(P1=P1, tau1=tau1, k1=k1, w1=w1, e1=e1, 
-                        P2=P2, tau2=tau2, k2=k2, w2=w2, e2=e2, offset=offset)
+                        P2=P2, tau2=tau2, k2=k2, w2=w2, e2=e2, offset=offset, alpha=alpha)
     y_fit       = fit_curve.get_value(x)
     return -0.5*(np.sum( ((y-y_fit)/yerr)**2))
 
@@ -123,7 +126,7 @@ def lnprob(theta, x, y, yerr):
 
 
 import emcee
-ndim = 11
+ndim = 13
 nwalkers = 32
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y, yerr), threads=14)
 
@@ -132,7 +135,7 @@ time_start  = time.time()
 
 print("Running first burn-in...")
 pos = [[7., 1., np.log(np.std(y))/100, 0, 0.4,\
-        120., 1., np.log(np.std(y))/100, 0, 0.4, 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+        100., 1., np.log(np.std(y))/100, 0, 0.4, 0., 0., 0.5] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
 pos, prob, state  = sampler.run_mcmc(pos, 3000)
 
 print("Running second burn-in...")
@@ -157,6 +160,8 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 import copy
 raw_samples         = sampler.chain[:, 5000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
+real_samples[:,1]   = 10*real_samples[:,1]
+real_samples[:,6]   = 10*real_samples[:,6]
 real_samples[:,0:3] = 100*real_samples[:,0:3]
 real_samples[:,5:8] = 100*real_samples[:,5:8]
 idx = real_samples[:,3] > 0
@@ -168,7 +173,7 @@ real_samples[idx,8] = real_samples[idx, 8] + 2*np.pi
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
 labels_log=[r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{100}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
             r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{100}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
-            "offset"]
+            "offset1", "offset2", r"$\alpha$"]
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -182,7 +187,7 @@ plt.savefig('HD85390-2-Trace.png')
 
 
 import corner
-labels=[r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", "offset"]
+labels=[r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", "offset1", "offset2", r"$\alpha$"]
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
 plt.savefig('HD85390-3-Corner.png')
 # plt.show()
@@ -192,8 +197,8 @@ plt.savefig('HD85390-3-Corner.png')
 # Output
 #==============================================================================
 
-a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
-aa = np.zeros((11,3))
+a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
+aa = np.zeros((12,3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
 aa[2,:] = [a2[i] for i in range(3)]
@@ -205,22 +210,24 @@ aa[7,:] = [a7[i] for i in range(3)]
 aa[8,:] = [a8[i] for i in range(3)]
 aa[9,:] = [a9[i] for i in range(3)]
 aa[10,:]= [a10[i] for i in range(3)]
+aa[11,:]= [a11[i] for i in range(3)]
+aa[12,:]= [a11[i] for i in range(3)]
 np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
 
 
-P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset = aa[:,0]
+P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2, alpha = aa[:,0]
 fig = plt.figure(figsize=(10, 7))
 frame1 = fig.add_axes((.15,.3,.8,.6))
 frame1.axhline(y=0, color='k', ls='--', alpha=.3)
 t_sample    = np.linspace(min(x), max(x), num=10001, endpoint=True)
 # Planet 1 #
-Planet1     = Model(P1=P1/100, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
-                    P2=P2/100, tau2=tau2/100, k2=0, w2=w2, e2=e2, offset=0)
+Planet1     = Model(P1=P1/100, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, 
+                    P2=P2/100, tau2=tau2/1000, k2=0, w2=w2, e2=e2, offset1=offset1, offset2=0, alpha=0)
 y1          = Planet1.get_value(t_sample)
 plt.plot(t_sample, y1, 'b-.', alpha=.3, label='Planet1')
 # Planet 2 #
-Planet2     = Model(P1=P1/100, tau1=tau1/100, k1=0, w1=w1, e1=e1, 
-                    P2=P2/100, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, offset=offset)
+Planet2     = Model(P1=P1/100, tau1=tau1/1000, k1=0, w1=w1, e1=e1, 
+                    P2=P2/100, tau2=tau2/1000, k2=k2/100, w2=w2, e2=e2, offset1=0, offset2=offset2, alpha=0)
 y2          = Planet2.get_value(t_sample)
 plt.plot(t_sample, y2, 'b--', alpha=.3, label='Planet2')
 # Planet1 + Planet2 #
@@ -230,9 +237,14 @@ plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0, label='HARPS RV')
 plt.legend()
 plt.ylabel("Radial velocity [m/s]")
 
-fit_curve   = Model(P1=P1/100, tau1=tau1/100, k1=k1/100, w1=w1, e1=e1, 
-                    P2=P2/100, tau2=tau2/100, k2=k2/100, w2=w2, e2=e2, offset=offset)
+fit_curve   = Model(P1=P1/100, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, 
+                    P2=P2/100, tau2=tau2/1000, k2=k2/100, w2=w2, e2=e2, offset1=offset1, offset2=offset2, alpha=alpha)
 y_fit       = fit_curve.get_value(x)
+plt.plot(x, y_fit, 'bo', alpha=.5, label='two planets + smoothed jitter')
+plt.plot(x, alpha*jitter_smooth, 'ro', alpha=.5, label='smoothed jitter')
+plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0, label='HARPS RV')
+plt.legend()
+plt.ylabel("Radial velocity [m/s]")
 
 residual    = y_fit - y
 chi2        = sum(residual**2 / yerr**2)
@@ -245,8 +257,8 @@ plt.errorbar(x, residual, yerr=yerr, fmt=".k", capsize=0)
 plt.xlabel("BJD - 2400000")
 plt.ylabel('Residual [m/s]')
 plt.savefig('HD85390-4-MCMC_fit.png')
-plt.close("all")
 
+plt.close("all")
 
 os.chdir('..')
 
