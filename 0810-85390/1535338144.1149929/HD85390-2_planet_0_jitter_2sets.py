@@ -110,7 +110,7 @@ def lnprior(theta):
     P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2 = theta
     # if (3. < P1 < 10.) and (-1. < tau1 < 4.) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and \
     #    (-30 < tau2 < 30) and (0. < k2 < 0.2) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.9):
-    if (6.5 < P1 < 9.0) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and \
+    if (7. < P1 < 9.0) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and \
        (-50 < tau2 < 50) and (0. < k2 < 0.2) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.9):       
         return 0.0
     return -np.inf
@@ -139,7 +139,7 @@ import time
 time_start  = time.time()
 
 print("Running first burn-in...")
-pos = [[7., 1., np.log(np.std(y))/100, 0, 0.4,\
+pos = [[8., 1., np.log(np.std(y))/100, 0, 0.4,\
         100., 1., np.log(np.std(y))/100, 0, 0.4, 0., 0.] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
 pos, prob, state  = sampler.run_mcmc(pos, 3000)
 
@@ -175,6 +175,8 @@ idx = real_samples[:,3] > 0
 real_samples[idx,3] = real_samples[idx, 3] - 2*np.pi
 idx = real_samples[:,8] < 0
 real_samples[idx,8] = real_samples[idx, 8] + 2*np.pi
+
+# idx_P2 = real_samples[:,5] < 60000
 
 
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
