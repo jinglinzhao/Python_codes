@@ -97,7 +97,7 @@ corner.corner(sampler.flatchain[:, inds], truths=tri_truths, labels=tri_labels);
 #==============================================================================
 
 kwargs = dict(**truth)
-kwargs["bounds"] = dict(location=(-2, 2))
+kwargs["bounds"] = dict(location=(-0.3, 0.3))
 mean_model = Model(**kwargs)
 gp = george.GP(np.var(y) * kernels.Matern32Kernel(10.0), mean=mean_model)
 gp.compute(t, yerr)
@@ -118,16 +118,16 @@ time_start  = time.time()
 
 print("Running first burn-in...")
 p0 = initial + 1e-4 * np.random.randn(nwalkers, ndim)
-p0, lp, _ = sampler.run_mcmc(p0, 2000)
+p0, lp, _ = sampler.run_mcmc(p0, 500)
 
 print("Running second burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
 sampler.reset()
-p0, _, _ = sampler.run_mcmc(p0, 2000)
+p0, _, _ = sampler.run_mcmc(p0, 500)
 sampler.reset()
 
 print("Running production...")
-sampler.run_mcmc(p0, 2000);    
+sampler.run_mcmc(p0, 1000);    
 
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))

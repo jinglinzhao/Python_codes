@@ -97,23 +97,22 @@ import emcee
 
 initial = gp.get_parameter_vector()
 ndim, nwalkers = len(initial), 32
-sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob2, threads=14)
+sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob2, threads=6)
 
 import time
 time_start  = time.time()
 
 print("Running first burn-in...")
 p0 = initial + 1e-4 * np.random.randn(nwalkers, ndim)
-p0, lp, _ = sampler.run_mcmc(p0, 5000)
+p0, lp, _ = sampler.run_mcmc(p0, 2000)
 
 print("Running second burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
 sampler.reset()
-p0, _, _ = sampler.run_mcmc(p0, 5000)
-# sampler.reset()
+p0, _, _ = sampler.run_mcmc(p0, 3000)
+sampler.reset()
 
 print("Running production...")
-p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
 sampler.run_mcmc(p0, 5000);    
 
 time_end    = time.time()
@@ -125,7 +124,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, 5000:8000, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, :, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
 real_samples[:,1]   = 10*real_samples[:,1]
 real_samples[:,6]   = 10*real_samples[:,6]

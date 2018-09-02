@@ -62,20 +62,13 @@ class Model(Model):
         return rv1 + rv2 + offset
 
 #==============================================================================
-# Priors
-#==============================================================================
-# model = george.GP(mean=Model(P1=8., tau1=1., k1=np.std(y)/100, w1=0., e1=0.4, 
-                   # P2=100, tau2=1., k2=np.std(y)/100, w2=0., e2=0.4, offset1=0., offset2=0.))
-# model.compute(t, yerr)
-
-# def lnprob(p):
-#     model.set_parameter_vector(p)
-#     return model.log_likelihood(y, quiet=True) + model.log_prior()       
-
-#==============================================================================
 # GP
 #==============================================================================
 from george import kernels
+
+k1  	= kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(3200))
+k2  	= np.var(y) * kernels.ExpSquaredKernel(100)
+kernel 	= k1 * k2
 
 truth = dict(P1=8., tau1=1., k1=np.std(y)/100, w1=0., e1=0.4, 
                    P2=100, tau2=1., k2=np.std(y)/100, w2=0., e2=0.4, offset1=0., offset2=0.)
@@ -83,7 +76,7 @@ kwargs = dict(**truth)
 kwargs["bounds"] = dict(P1=(7,9), k1=(0,0.1), w1=(-2*np.pi,2*np.pi), e1=(0,0.8), 
 					tau2=(-50,50), k2=(0,0.2), w2=(-2*np.pi,2*np.pi), e2=(0,0.8))
 mean_model = Model(**kwargs)
-gp = george.GP(np.var(y) * kernels.Matern32Kernel(10.0), mean=mean_model)
+gp = george.GP(kernel, mean=mean_model)
 gp.compute(t, yerr)
 
 def lnprob2(p):
@@ -112,6 +105,11 @@ sampler.reset()
 p0, _, _ = sampler.run_mcmc(p0, 5000)
 # sampler.reset()
 
+print("Running third burn-in...")
+p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
+sampler.reset()
+p0, _, _ = sampler.run_mcmc(p0, 5000)
+
 print("Running production...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
 sampler.run_mcmc(p0, 5000);    
@@ -133,28 +131,14 @@ real_samples[:,0:3] = 100*real_samples[:,0:3]
 real_samples[:,5:8] = 100*real_samples[:,5:8]
 idx = real_samples[:,3] > 0
 real_samples[idx,3] = real_samples[idx, 4] - 2*np.pi
-idx = real_samples[:,8] < 1.5
+idx = real_samples[:,8] < 5.5-2*np.pi
 real_samples[idx,8] = real_samples[idx, 9] + 2*np.pi
-
-# import copy
-# raw_samples         = sampler.chain[:, 5000:6000, :].reshape((-1, ndim))
-# real_samples        = copy.copy(raw_samples)
-# real_samples[:,3]   = 10*real_samples[:,3]
-# real_samples[:,8]   = 10*real_samples[:,8]
-# real_samples[:,2:5] = 100*real_samples[:,2:5]
-# real_samples[:,7:10] = 100*real_samples[:,7:10]
-# idx = real_samples[:,5] > 0
-# real_samples[idx,5] = real_samples[idx, 5] - 2*np.pi
-# idx = real_samples[:,8] < 1.5
-# real_samples[idx,10] = real_samples[idx, 10] + 2*np.pi
-
-# idx_P2 = real_samples[:,5] < 60000
 
 
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
 labels_log=[r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{100}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
             r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{100}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
-            "offset1", "offset2", "1", "2"]
+            "offset1", "offset2", "1", "2", "3", "4"]
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -169,7 +153,7 @@ plt.savefig('HD85390-2-Trace.png')
 
 import corner
 labels=[r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", 
-		r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", "offset1", "offset2", "1", "2"]
+		r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", "offset1", "offset2", "1", "2", "3", "4"]
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
 plt.savefig('HD85390-3-Corner.png')
 # plt.show()
@@ -179,7 +163,7 @@ plt.savefig('HD85390-3-Corner.png')
 # Output
 #==============================================================================
 
-a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, _, _ = map(lambda v: 
+a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, _, _, _, _ = map(lambda v: 
 	(v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
 aa = np.zeros((12,3))
 aa[0,:] = [a0[i] for i in range(3)]

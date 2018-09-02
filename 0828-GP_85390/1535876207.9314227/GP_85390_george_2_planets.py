@@ -125,7 +125,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, 5000:8000, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, 5000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
 real_samples[:,1]   = 10*real_samples[:,1]
 real_samples[:,6]   = 10*real_samples[:,6]

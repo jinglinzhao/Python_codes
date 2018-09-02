@@ -64,13 +64,13 @@ class Model(Model):
 #==============================================================================
 # Priors
 #==============================================================================
-# model = george.GP(mean=Model(P1=8., tau1=1., k1=np.std(y)/100, w1=0., e1=0.4, 
-                   # P2=100, tau2=1., k2=np.std(y)/100, w2=0., e2=0.4, offset1=0., offset2=0.))
-# model.compute(t, yerr)
+model = george.GP(mean=Model(P1=8., tau1=1., k1=np.std(y)/100, w1=0., e1=0.4, 
+                   P2=100, tau2=1., k2=np.std(y)/100, w2=0., e2=0.4, offset1=0., offset2=0.))
+model.compute(t, yerr)
 
-# def lnprob(p):
-#     model.set_parameter_vector(p)
-#     return model.log_likelihood(y, quiet=True) + model.log_prior()       
+def lnprob(p):
+    model.set_parameter_vector(p)
+    return model.log_likelihood(y, quiet=True) + model.log_prior()       
 
 #==============================================================================
 # GP
@@ -80,8 +80,8 @@ from george import kernels
 truth = dict(P1=8., tau1=1., k1=np.std(y)/100, w1=0., e1=0.4, 
                    P2=100, tau2=1., k2=np.std(y)/100, w2=0., e2=0.4, offset1=0., offset2=0.)
 kwargs = dict(**truth)
-kwargs["bounds"] = dict(P1=(7,9), k1=(0,0.1), w1=(-2*np.pi,2*np.pi), e1=(0,0.8), 
-					tau2=(-50,50), k2=(0,0.2), w2=(-2*np.pi,2*np.pi), e2=(0,0.8))
+kwargs["bounds"] = dict(P1=(7,9), k1=(0,0.1), w1=(-2*np.pi,2*np.pi), e1=(0,0.9), 
+					tau2=(-50,50), k2=(0,0.2), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
 mean_model = Model(**kwargs)
 gp = george.GP(np.var(y) * kernels.Matern32Kernel(10.0), mean=mean_model)
 gp.compute(t, yerr)
@@ -97,24 +97,23 @@ import emcee
 
 initial = gp.get_parameter_vector()
 ndim, nwalkers = len(initial), 32
-sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob2, threads=14)
+sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob2, threads=6)
 
 import time
 time_start  = time.time()
 
 print("Running first burn-in...")
 p0 = initial + 1e-4 * np.random.randn(nwalkers, ndim)
-p0, lp, _ = sampler.run_mcmc(p0, 5000)
+p0, lp, _ = sampler.run_mcmc(p0, 2000)
 
 print("Running second burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
 sampler.reset()
-p0, _, _ = sampler.run_mcmc(p0, 5000)
-# sampler.reset()
+p0, _, _ = sampler.run_mcmc(p0, 2000)
+sampler.reset()
 
 print("Running production...")
-p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
-sampler.run_mcmc(p0, 5000);    
+sampler.run_mcmc(p0, 2000);    
 
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))
@@ -125,16 +124,16 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, 5000:8000, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, :, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
-real_samples[:,1]   = 10*real_samples[:,1]
-real_samples[:,6]   = 10*real_samples[:,6]
-real_samples[:,0:3] = 100*real_samples[:,0:3]
-real_samples[:,5:8] = 100*real_samples[:,5:8]
-idx = real_samples[:,3] > 0
-real_samples[idx,3] = real_samples[idx, 4] - 2*np.pi
+real_samples[:,3]   = 10*real_samples[:,3]
+real_samples[:,8]   = 10*real_samples[:,8]
+real_samples[:,2:5] = 100*real_samples[:,2:5]
+real_samples[:,7:10] = 100*real_samples[:,7:10]
+idx = real_samples[:,5] > 0
+real_samples[idx,5] = real_samples[idx, 5] - 2*np.pi
 idx = real_samples[:,8] < 1.5
-real_samples[idx,8] = real_samples[idx, 9] + 2*np.pi
+real_samples[idx,10] = real_samples[idx, 10] + 2*np.pi
 
 # import copy
 # raw_samples         = sampler.chain[:, 5000:6000, :].reshape((-1, ndim))
