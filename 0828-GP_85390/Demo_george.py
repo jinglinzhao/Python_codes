@@ -37,57 +37,58 @@ pl.xlim(-5, 5)
 pl.title("simulated data");
 
 
+# if 0:
 #==============================================================================
 # Model
 #==============================================================================
+#     class PolynomialModel(Model):
+#         parameter_names = ("m", "b", "amp", "location", "log_sigma2")
 
-class PolynomialModel(Model):
-    parameter_names = ("m", "b", "amp", "location", "log_sigma2")
+#         def get_value(self, t):
+#             t = t.flatten()
+#             return (t * self.m + self.b +
+#                     self.amp * np.exp(-0.5*(t-self.location)**2*np.exp(-self.log_sigma2)))
 
-    def get_value(self, t):
-        t = t.flatten()
-        return (t * self.m + self.b +
-                self.amp * np.exp(-0.5*(t-self.location)**2*np.exp(-self.log_sigma2)))
+# #==============================================================================
+# # Priors
+# #==============================================================================
+#     model = george.GP(mean=PolynomialModel(m=0, b=0, amp=-1, location=0.1, log_sigma2=np.log(0.4)))
+#     model.compute(t, yerr)
 
-#==============================================================================
-# Priors
-#==============================================================================
-model = george.GP(mean=PolynomialModel(m=0, b=0, amp=-1, location=0.1, log_sigma2=np.log(0.4)))
-model.compute(t, yerr)
-
-def lnprob(p):
-    model.set_parameter_vector(p)
-    return model.log_likelihood(y, quiet=True) + model.log_prior()           
+#     def lnprob(p):
+#         model.set_parameter_vector(p)
+#         return model.log_likelihood(y, quiet=True) + model.log_prior()           
 
 #==============================================================================
 # MCMC
 #==============================================================================
 import emcee
 
-initial = model.get_parameter_vector()
-ndim, nwalkers = len(initial), 32
-p0 = initial + 1e-8 * np.random.randn(nwalkers, ndim)
-sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob)
+# if 0:
+    # initial = model.get_parameter_vector()
+    # ndim, nwalkers = len(initial), 32
+    # p0 = initial + 1e-8 * np.random.randn(nwalkers, ndim)
+    # sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob)
 
-print("Running burn-in...")
-p0, _, _ = sampler.run_mcmc(p0, 500)
-sampler.reset()
+    # print("Running burn-in...")
+    # p0, _, _ = sampler.run_mcmc(p0, 500)
+    # sampler.reset()
 
-print("Running production...")
-sampler.run_mcmc(p0, 1000);         
+    # print("Running production...")
+    # sampler.run_mcmc(p0, 1000);         
 
 #==============================================================================
 # Corner
 #==============================================================================
-import corner
+    # import corner
 
-tri_cols = ["amp", "location", "log_sigma2"]
-tri_labels = [r"$\alpha$", r"$\ell$", r"$\ln\sigma^2$"]
-tri_truths = [truth[k] for k in tri_cols]
-tri_range = [(-2, -0.01), (-3, -0.5), (-1, 1)]
-names = model.get_parameter_names()
-inds = np.array([names.index("mean:"+k) for k in tri_cols])
-corner.corner(sampler.flatchain[:, inds], truths=tri_truths, labels=tri_labels);
+    # tri_cols = ["amp", "location", "log_sigma2"]
+    # tri_labels = [r"$\alpha$", r"$\ell$", r"$\ln\sigma^2$"]
+    # tri_truths = [truth[k] for k in tri_cols]
+    # tri_range = [(-2, -0.01), (-3, -0.5), (-1, 1)]
+    # names = model.get_parameter_names()
+    # inds = np.array([names.index("mean:"+k) for k in tri_cols])
+    # corner.corner(sampler.flatchain[:, inds], truths=tri_truths, labels=tri_labels);
 
 
 #==============================================================================
@@ -99,6 +100,7 @@ corner.corner(sampler.flatchain[:, inds], truths=tri_truths, labels=tri_labels);
 kwargs = dict(**truth)
 kwargs["bounds"] = dict(location=(-0.3, 0.3))
 mean_model = Model(**kwargs)
+# gp = george.GP(np.var(y) * kernels.Matern32Kernel(10.0), mean=mean_model, fit_mean=True)
 gp = george.GP(np.var(y) * kernels.Matern32Kernel(10.0), mean=mean_model)
 gp.compute(t, yerr)
 
@@ -135,6 +137,11 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 # Corner
 #==============================================================================
+import corner
+tri_cols = ["amp", "location", "log_sigma2"]
+tri_labels = [r"$\alpha$", r"$\ell$", r"$\ln\sigma^2$"]
+tri_truths = [truth[k] for k in tri_cols]
+tri_range = [(-2, -0.01), (-3, -0.5), (-1, 1)]
 names = gp.get_parameter_names()
 inds = np.array([names.index("mean:"+k) for k in tri_cols])
 corner.corner(sampler.flatchain[:, inds], truths=tri_truths, labels=tri_labels);
