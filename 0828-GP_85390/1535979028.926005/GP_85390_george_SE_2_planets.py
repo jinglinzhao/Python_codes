@@ -20,10 +20,9 @@ import time
 import os
 import shutil
 time0   = time.time()
-dir_name = 'george' + str(time0)
-os.makedirs(dir_name)
-shutil.copy('GP_85390_george_SE_2_planets.py', dir_name+'/GP_85390_george_SE_2_planets.py')  
-os.chdir(dir_name)
+os.makedirs(str(time0))
+shutil.copy('GP_85390_george_SE_2_planets.py', str(time0)+'/GP_85390_george_SE_2_planets.py')  
+os.chdir(str(time0))
 
 plt.figure()
 plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
@@ -75,10 +74,10 @@ kernel 	= k1 * k2
 truth = dict(P1=8., tau1=1., k1=np.std(y)/100, w1=0., e1=0.4, 
             P2=100, tau2=1., k2=np.std(y)/100, w2=0., e2=0.4, offset1=0., offset2=0.)
 kwargs = dict(**truth)
-kwargs["bounds"] = dict(P1=(7.5,8.5), k1=(0,0.1), w1=(-2*np.pi,2*np.pi), e1=(0,0.9), 
-					   tau2=(-50,50), k2=(0,0.2), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
+kwargs["bounds"] = dict(P1=(7.5,8.5), k1=(0,0.1), w1=(-2*np.pi,2*np.pi), e1=(0,0.8), 
+					   tau2=(-50,50), k2=(0,0.2), w2=(-2*np.pi,2*np.pi), e2=(0,0.8))
 mean_model = Model(**kwargs)
-gp = george.GP(kernel, mean=mean_model, fit_mean=True)
+gp = george.GP(kernel, mean=mean_model)
 gp.compute(t, yerr)
 
 def lnprob2(p):
@@ -99,19 +98,19 @@ time_start  = time.time()
 
 print("Running first burn-in...")
 p0 = initial + 1e-4 * np.random.randn(nwalkers, ndim)
-p0, lp, _ = sampler.run_mcmc(p0, 3000)
+p0, lp, _ = sampler.run_mcmc(p0, 2000)
 
 print("Running second burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 3000)
+p0, _, _ = sampler.run_mcmc(p0, 2000)
 
 print("Running third burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 3000)
+p0, _, _ = sampler.run_mcmc(p0, 2000)
 
 print("Running production...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
-sampler.run_mcmc(p0, 3000);    
+sampler.run_mcmc(p0, 2000);    
 
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))
@@ -129,9 +128,9 @@ real_samples[:,6]   = 10*real_samples[:,6]
 real_samples[:,0:3] = 100*real_samples[:,0:3]
 real_samples[:,5:8] = 100*real_samples[:,5:8]
 idx = real_samples[:,3] > 0
-real_samples[idx,3] = real_samples[idx, 3] - 2*np.pi
-idx = real_samples[:,8] < 3
-real_samples[idx,8] = real_samples[idx, 8] + 2*np.pi
+real_samples[idx,3] = real_samples[idx, 4] - 2*np.pi
+idx = real_samples[:,8] < 5.5-2*np.pi
+real_samples[idx,8] = real_samples[idx, 9] + 2*np.pi
 
 
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
@@ -162,8 +161,8 @@ plt.savefig('HD85390-3-Corner.png')
 # Output
 #==============================================================================
 
-a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v0, v1, v2, v3 = map(lambda v: 
-	(v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
+a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, _, _, _, _ = map(lambda v: 
+	(v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
 aa = np.zeros((12,3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
@@ -179,12 +178,6 @@ aa[10,:]= [a10[i] for i in range(3)]
 aa[11,:]= [a11[i] for i in range(3)]
 np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
 
-solution = np.zeros(16)
-solution[12] = v0[0]
-solution[13] = v1[0]
-solution[14] = v2[0]
-solution[15] = v3[0]
-solution[0:12] = aa[:,0]
 
 P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2 = aa[:,0]
 fig = plt.figure(figsize=(10, 7))
@@ -227,7 +220,6 @@ plt.close("all")
 
 
 # Make the maximum likelihood prediction
-gp.set_parameter_vector(solution)
 t = np.linspace(min(x), max(x), 10000)
 mu, var = gp.predict(y, t, return_var=True)
 std = np.sqrt(var)
@@ -244,9 +236,9 @@ plt.xlabel(r"$t$")
 plt.gca().yaxis.set_major_locator(plt.MaxNLocator(5))
 plt.title("maximum likelihood prediction");
 plt.savefig('HD85390-5-prediction.png')
-plt.close('all')
 
-# os.chdir('..')
+
+os.chdir('..')
 
 
 

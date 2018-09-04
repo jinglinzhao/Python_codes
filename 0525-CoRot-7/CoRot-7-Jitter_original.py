@@ -53,7 +53,7 @@ if 1:
 	plt.plot(RV_additional[:,0], RV_additional[:,1], 'o', label='RV_additional')
 	plt.plot(RV_conv[:,0], RV_conv[:,1], '^', label='RV_conv')
 	plt.plot(np.arange(26), RV_additional[:,1]+RV_conv[:,1], '-', label='RV_a + RV_c')
-	plt.plot(BJD, GP_y_2012 * 5, '-.', label='GP')
+	# plt.plot(BJD, GP_y_2012 * 5, '-.', label='GP')
 	# plt.errorbar(t_bin, y_bin, yerr = err_bin, fmt="*", capsize=0)
 	plt.title('Jitter model for CoRot-7 in 2012')
 	plt.xlabel('MJD')

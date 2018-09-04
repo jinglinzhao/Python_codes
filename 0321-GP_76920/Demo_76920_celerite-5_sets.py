@@ -155,14 +155,18 @@ import time
 time_start  = time.time()
 
 print("Running first burn-in...")
-p0 = initial + 1e-8 * np.random.randn(nwalkers, ndim)
+p0 = initial + 1e-4 * np.random.randn(nwalkers, ndim)
 p0, lp, _ = sampler.run_mcmc(p0, 1000)
 
 print("Running second burn-in...")
-p0 = p0[np.argmax(lp)] + 1e-8 * np.random.randn(nwalkers, ndim)
+p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
 # sampler.reset()
 p0, _, _ = sampler.run_mcmc(p0, 1000)
-# sampler.reset()
+
+print("Running third burn-in...")
+p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
+p0, _, _ = sampler.run_mcmc(p0, 1000)
+sampler.reset()
 
 print("Running production...")
 sampler.run_mcmc(p0, 2000);
@@ -214,7 +218,7 @@ plt.show()
 import copy
 log_samples         = sampler.chain[:, :, :].reshape((-1, ndim))
 real_samples        = copy.copy(log_samples)
-real_samples[:,3:6] = np.exp(real_samples[:,3:6])
+real_samples[:,2:5] = np.exp(real_samples[:,2:5])
 real_samples[:,-6:] = real_samples[:,-6:]*100
 
 fig, axes = plt.subplots(ndim, figsize=(10, 7), sharex=True)

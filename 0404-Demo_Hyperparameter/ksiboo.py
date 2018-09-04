@@ -34,8 +34,8 @@ if 0:
 
 # convert between two scripts # 
 t 	 = ALL[:,0] - min(ALL[:,0])
-y 	 = ALL[:,1]
-yerr = ALL[:,2]
+y 	 = ALL[:,3]
+yerr = ALL[:,4]
 
 
 
@@ -45,7 +45,7 @@ yerr = ALL[:,2]
 from george import kernels
 
 k1 = 1**2 * kernels.ExpSquaredKernel(metric=10**2)
-k2 = 1**2 * kernels.ExpSquaredKernel(90**2) * kernels.ExpSine2Kernel(gamma=1, log_period=1.85)
+k2 = 1**2 * kernels.ExpSquaredKernel(90**2) * kernels.ExpSine2Kernel(gamma=1, log_period=1.8)
 k3 = 0.66**2 * kernels.RationalQuadraticKernel(log_alpha=np.log(0.78), metric=1.2**2)
 k4 = 0.18**2 * kernels.ExpSquaredKernel(1.6**2)
 kernel = k1 + k2 + k3 + k4
@@ -86,8 +86,28 @@ results = op.minimize(nll, p0, jac=grad_nll, method="Newton-CG")
 # Update the kernel and print the final log-likelihood.
 gp.set_parameter_vector(results.x)
 print(gp.log_likelihood(y))
+print(np.exp(results.x[6]))
+# 6.530548
+# 5.7345
+# 6.51176
 
+# Make the maximum likelihood prediction
+x = np.linspace(min(t), max(t), 1000)
+mu, var = gp.predict(y, x, return_var=True)
+std = np.sqrt(var)
 
+# Plot the data
+# plt.figure()
+color = "#ff7f0e"
+plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0)
+plt.plot(x, mu, color=color)
+plt.fill_between(x, mu+std, mu-std, color=color, alpha=0.3, edgecolor="none")
+plt.ylabel(r"$y$")
+plt.xlabel(r"$t$")
+plt.gca().yaxis.set_major_locator(plt.MaxNLocator(5))
+plt.title("Column3 - maximum likelihood prediction");
+plt.savefig('ksiboo-prediction-2.png')
+plt.show()
 
 ##############################
 # Sampling & Marginalization # 
