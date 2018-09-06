@@ -21,7 +21,7 @@ real_a      = 2.0
 real_k      = 0.7
 real_phi    = 1.0
 
-N = 200
+N = 100
 amplitude1  = np.zeros(N)
 period1     = np.zeros(N)
 amplitude2  = np.zeros(N)
@@ -88,7 +88,7 @@ for n in range(N):
     # x       = gran_gen(n_group, n_obs)
     print('Observation samples:')
     x = np.sort(random.sample(range(200), 40))
-    # x = t    
+    x = t
     print(x)    
     RV_X   = np.array([XX[i] for i in x])
     RV_Y   = np.array([YY[i] for i in x])
@@ -264,7 +264,7 @@ for n in range(N):
 
         def lnprior(theta):
             a, k, phi, kz, offset_Z = theta
-            if (0 < a < 5) and (0 < k < 5) and (-2*np.pi < phi < 2*np.pi) and (1<kz<5):
+            if (0 < a < 5) and (0 < k < 5) and (-2*np.pi < phi < 2*np.pi) and (0<kz<1):
                 return 0.0
             return -np.inf
 
@@ -284,10 +284,10 @@ for n in range(N):
         import emcee
         ndim        = 5
         nwalkers    = 32
-        sampler     = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, RV_Z, yerr))
+        sampler     = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, RV_Y, yerr))
 
         print("Running first burn-in...")
-        pos         = [[np.std(RV_X), 1, 0, 1.5, 0] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
+        pos         = [[np.std(RV_X), 1, 0, 0.8, 0] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
         pos, prob, _  = sampler.run_mcmc(pos, burn_in_1_step)
 
         print("Running second burn-in...")
