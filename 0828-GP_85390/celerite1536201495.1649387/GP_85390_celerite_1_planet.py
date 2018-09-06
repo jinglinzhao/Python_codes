@@ -1,9 +1,8 @@
-# based on HD85390-2_planet_0_jitter_2sets.py
+# based on GP_85390_celerite_2_planets.py
 
 import numpy as np
 import matplotlib.pyplot as plt
 from rv import solve_kep_eqn
-
 
 #==============================================================================
 # Import data 
@@ -22,7 +21,7 @@ import shutil
 time0   = time.time()
 dir_name = 'celerite' + str(time0)
 os.makedirs(dir_name)
-shutil.copy('GP_85390_celerite_2_planets.py', dir_name +'/GP_85390_celerite_2_planets.py')  
+shutil.copy('GP_85390_celerite_1_planet.py', dir_name +'/GP_85390_celerite_1_planet.py')  
 os.chdir(dir_name)
 
 plt.figure()
@@ -39,7 +38,7 @@ import celerite
 from celerite.modeling import Model
 
 class Model(Model):
-    parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'offset1', 'offset2')
+    parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'offset1', 'offset2')
 
     def get_value(self, t):
 
@@ -48,29 +47,18 @@ class Model(Model):
         e_anom1 = solve_kep_eqn(M_anom1, self.e1)
         f1      = 2*np.arctan( np.sqrt((1+self.e1)/(1-self.e1))*np.tan(e_anom1*.5) )
         rv1     = 100*self.k1*(np.cos(f1 + self.w1) + self.e1*np.cos(self.w1))
-        
-        # Planet 2
-        M_anom2 = 2*np.pi/(100*self.P2) * (t - 1000*self.tau2)
-        e_anom2 = solve_kep_eqn(M_anom2, self.e2)
-        f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
-        rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
         offset      = np.zeros(len(t))
         idx         = t < 57300
         offset[idx] = self.offset1
         offset[~idx]= self.offset2
 
-        return rv1 + rv2 + offset
+        return rv1 + offset
 
-truth = dict(P1=8., tau1=1., k1=np.std(y)/100, w1=0., e1=0.4, 
-            P2=100, tau2=1., k2=np.std(y)/100, w2=0., e2=0.4, offset1=0., offset2=0.)
+truth = dict(P1=8., tau1=1., k1=np.std(y)/100, w1=0., e1=0.4, offset1=0., offset2=0.)
 kwargs = dict(**truth)
-kwargs["bounds"] = dict(P1=(7.5,8.5), k1=(0,0.1), w1=(-2*np.pi,2*np.pi), e1=(0,0.8), 
-                       tau2=(-50,50), k2=(0,0.2), w2=(-2*np.pi,2*np.pi), e2=(0,0.8))
+kwargs["bounds"] = dict(P1=(7.5,8.5), k1=(0,0.1), w1=(-2*np.pi,2*np.pi), e1=(0,0.8))
 mean_model = Model(**kwargs)
-# mean_model = Model(P1=8., tau1=1., k1=np.std(y)/100, w1=0., e1=0.4, 
-#                    P2=100, tau2=1., k2=np.std(y)/100, w2=0., e2=0.4, offset1=0., offset2=0.)
-
 
 #==============================================================================
 # The fit
@@ -82,7 +70,7 @@ from celerite import terms
 
 # Set up the GP model
 # kernel = terms.RealTerm(log_a=np.log(np.var(y)), log_c=-np.log(10.0))
-kernel  = terms.SHOTerm(log_S0=np.log(2), log_Q=np.log(2), log_omega0=np.log(5))
+kernel  = terms.SHOTerm(log_S0=np.log(2), log_Q=np.log(20), log_omega0=np.log(1/3000))
 gp = celerite.GP(kernel, mean=mean_model, fit_mean=True)
 gp.compute(x, yerr)
 print("Initial log-likelihood: {0}".format(gp.log_likelihood(y)))
@@ -98,6 +86,7 @@ def neg_log_like(params, y, gp):
 
 # Fit for the maximum likelihood parameters
 initial_params = gp.get_parameter_vector()
+names = gp.get_parameter_names()
 bounds = gp.get_parameter_bounds()
 soln = minimize(neg_log_like, initial_params, method="L-BFGS-B", bounds=bounds, args=(y, gp))
 gp.set_parameter_vector(soln.x)
@@ -109,7 +98,7 @@ mu, var = gp.predict(y, t, return_var=True)
 std = np.sqrt(var)
 
 # Plot the data
-plt.figure()
+# plt.figure()
 color = "#ff7f0e"
 plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
 plt.plot(t, mu, color=color)
@@ -131,9 +120,9 @@ plt.show()
 # As prior, we assume an 'uniform' prior (i.e. constant prob. density)
 
 def lnprior(params):
-    _, _, _, P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2 = params
-    if (7.5 < P1 < 8.5) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.8) and \
-    (-50 < tau2 < 50) and (0. < k2 < 0.2) and (-2*np.pi < w2 < 2*np.pi) and (0 < e2 < 0.8):       
+    _, _, _, P1, tau1, k1, w1, e1, offset1, offset2 = params
+    if (7.5 < P1 < 8.5) and (0 < k1 < 0.1) and (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.8)
+        and (-50<offset1<50) and (-50<offset2<50):       
         return 0.0
     return -np.inf
 
@@ -180,7 +169,7 @@ pos, prob, _  = sampler.run_mcmc(pos, 2000)
 print("Running production...")
 # pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
 # pos, prob, state  = sampler.run_mcmc(pos, 3000)
-sampler.reset()
+# sampler.reset()
 sampler.run_mcmc(pos, 3000);
 
 time_end    = time.time()
@@ -192,7 +181,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, 3000:6000, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, 3000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
 real_samples[:,4]   = 10*real_samples[:,4]
 real_samples[:,9]   = 10*real_samples[:,9]
@@ -200,11 +189,9 @@ real_samples[:,3:6] = 100*real_samples[:,3:6]
 real_samples[:,8:11] = 100*real_samples[:,8:11]
 idx = real_samples[:,6] > 0
 real_samples[idx,6] = real_samples[idx, 5] - 2*np.pi
-idx = real_samples[:,11] < 0
-real_samples[idx,11] = real_samples[idx, 11] + 2*np.pi
 
 # import copy
-# raw_samples         = sampler.chain[:, :, :].reshape((-1, ndim))
+# raw_samples         = sampler.chain[:, 3000:6000, :].reshape((-1, ndim))
 # real_samples        = copy.copy(raw_samples)
 # real_samples[:,3]   = 10*real_samples[:,3]
 # real_samples[:,8]   = 10*real_samples[:,8]
@@ -212,12 +199,12 @@ real_samples[idx,11] = real_samples[idx, 11] + 2*np.pi
 # real_samples[:,7:10] = 100*real_samples[:,7:10]
 # idx = real_samples[:,5] > 0
 # real_samples[idx,5] = real_samples[idx, 5] - 2*np.pi
-# idx = real_samples[:,8] < 0
+# idx = real_samples[:,10] < 0
 # real_samples[idx,10] = real_samples[idx, 10] + 2*np.pi
 
+
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
-labels_log=["1", "2", r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
-            r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{1000}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
+labels_log=["1", "2", "3", r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
             "offset1", "offset2"]
 for i in range(ndim):
     ax = axes[i]
@@ -232,7 +219,7 @@ plt.savefig('HD85390-2-Trace.png')
 
 
 import corner
-labels=["1", "2", r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", "offset1", "offset2"]
+labels=["1", "2", "3", r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", "offset1", "offset2"]
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
 plt.savefig('HD85390-3-Corner.png')
 # plt.show()
@@ -242,8 +229,8 @@ plt.savefig('HD85390-3-Corner.png')
 # Output
 #==============================================================================
 
-v0, v1, v2, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
-aa = np.zeros((12,3))
+v0, v1, v2, a0, a1, a2, a3, a4, a5, a6= map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
+aa = np.zeros((7,3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
 aa[2,:] = [a2[i] for i in range(3)]
@@ -251,17 +238,11 @@ aa[3,:] = [a3[i] for i in range(3)]
 aa[4,:] = [a4[i] for i in range(3)]
 aa[5,:] = [a5[i] for i in range(3)]
 aa[6,:] = [a6[i] for i in range(3)]
-aa[7,:] = [a7[i] for i in range(3)]
-aa[8,:] = [a8[i] for i in range(3)]
-aa[9,:] = [a9[i] for i in range(3)]
-aa[10,:]= [a10[i] for i in range(3)]
-aa[11,:]= [a11[i] for i in range(3)]
 np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
 
 
 
 P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2 = aa[:,0]
-
 fig = plt.figure(figsize=(10, 7))
 frame1 = fig.add_axes((.15,.3,.8,.6))
 frame1.axhline(y=0, color='k', ls='--', alpha=.3)
@@ -301,14 +282,15 @@ plt.savefig('HD85390-4-MCMC_fit.png')
 plt.close("all")
 
 
-solution = np.arange(15)
+solution = np.arange(len(gp))
 solution[0] = v0[0]
 solution[1] = v1[0]
 solution[2] = v2[0]
 solution[3:] = aa[:,0]
+
 gp.set_parameter_vector(solution)
 # Make the maximum likelihood prediction
-t = np.linspace(min(x), max(x), 1000)
+t = np.linspace(min(x), max(x), 10000)
 mu, var = gp.predict(y, t, return_var=True)
 std = np.sqrt(var)
 

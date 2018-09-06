@@ -261,7 +261,6 @@ np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
 
 
 P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2 = aa[:,0]
-
 fig = plt.figure(figsize=(10, 7))
 frame1 = fig.add_axes((.15,.3,.8,.6))
 frame1.axhline(y=0, color='k', ls='--', alpha=.3)
@@ -308,7 +307,7 @@ solution[2] = v2[0]
 solution[3:] = aa[:,0]
 gp.set_parameter_vector(solution)
 # Make the maximum likelihood prediction
-t = np.linspace(min(x), max(x), 1000)
+t = np.linspace(min(x), max(x), 10000)
 mu, var = gp.predict(y, t, return_var=True)
 std = np.sqrt(var)
 
