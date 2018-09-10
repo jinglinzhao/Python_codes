@@ -7,7 +7,7 @@ from rv import solve_kep_eqn
 #==============================================================================
 # Import data 
 #==============================================================================
-star    = 'HD7449'
+star    = 'HD117618'
 
 if star == 'HD117618':
     AAT     = np.loadtxt('../data/HD117618_AAT.vels')
@@ -156,14 +156,14 @@ if star == 'HD117618':
                    d_aat=0., d_harps1=0., d_harps2=0.)
     kwargs  = dict(**truth)
     kwargs["bounds"] = dict(P1=(0, 1), k1=(0,0.3), w1=(-2*np.pi,2*np.pi), e1=(0,0.9), 
-                            P2=(2, 4), k2=(0,0.3), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
+                            P2=(0, 10), k2=(0,0.3), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
 if star == 'HD7449':
-    truth   = dict(P1=12.75, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.8, 
-                   P2=40.46, tau2=0.1, k2=np.std(y)/100, w2=0., e2=0.5, 
+    truth   = dict(P1=1.27, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.4, 
+                   P2=40.46, tau2=0.1, k2=np.std(y)/100, w2=0., e2=0.4, 
                    d_harps1=0., d_harps2=0.)
     kwargs  = dict(**truth)
-    kwargs["bounds"] = dict(P1=(0, 20), k1=(0,1.), w1=(-2*np.pi,2*np.pi), e1=(0,0.95), 
-                            P2=(30, 50), k2=(0,1.), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
+    kwargs["bounds"] = dict(P1=(0, 100), k1=(0,1.), w1=(-2*np.pi,2*np.pi), e1=(0,0.9), 
+                            P2=(0, 100), k2=(0,1.), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
 
 mean_model = Model(**kwargs)
 gp = george.GP(kernel, mean=mean_model, fit_mean=True)
@@ -224,14 +224,9 @@ real_samples[idx,8] = real_samples[idx, 8] + 2*np.pi
 
 
 fig, axes   = plt.subplots(ndim, figsize=(20, 14), sharex=True)
-if star == 'HD117618':
-    labels      = np.hstack(([r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
-                              r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{1000}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
-                              "d_aat", "d_harps1", "d_harps2"], names[-4:]))
-if star == 'HD7449':
-    labels      = np.hstack(([r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
-                              r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{1000}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
-                              "d_harps1", "d_harps2"], names[-4:]))
+labels      = np.hstack(([r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
+              r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{1000}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
+              "d_aat", "d_harps1", "d_harps2"], names[-4:]))
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -243,34 +238,26 @@ axes[-1].set_xlabel("step number");
 plt.savefig(star+'-2-Trace.png')
 # plt.show()
 
+
 import corner
-if star == 'HD117618':
-    labels= np.hstack(([r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", 
-                        r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", 
-                        "d_aat", "d_harps1", "d_harps2"], names[-4:]))
-if star == 'HD7449':
-    labels= np.hstack(([r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", 
-                        r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", 
-                        "d_harps1", "d_harps2"], names[-4:]))
+labels= np.hstack(([r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", 
+		r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", 
+        "d_aat", "d_harps1", "d_harps2"], names[-4:]))
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
 plt.savefig(star+'-3-Corner.png')
 # plt.show()
 
+
 #==============================================================================
 # Output
 #==============================================================================
+vv = np.zeros(len(gp) - len(truth))
+# aaa= np.zeros(12)
+# np.hstack((vv, aaa)) = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
+
+a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, v1, v2, v3, v4 = map(lambda v: 
+	(v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
 aa = np.zeros((len(truth),3))
-solution = np.zeros(len(gp))
-
-if star == 'HD117618':
-    a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, v1, v2, v3, v4 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
-                                                            zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
-    aa[12,:]= [a12[i] for i in range(3)]
-
-if star == 'HD7449':
-    a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v1, v2, v3, v4 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
-                                                            zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
-
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
 aa[2,:] = [a2[i] for i in range(3)]
@@ -283,53 +270,54 @@ aa[8,:] = [a8[i] for i in range(3)]
 aa[9,:] = [a9[i] for i in range(3)]
 aa[10,:]= [a10[i] for i in range(3)]
 aa[11,:]= [a11[i] for i in range(3)]
+aa[12,:]= [a12[i] for i in range(3)]
 np.savetxt(star+'_fit.txt', aa, fmt='%.6f')
 
+solution = np.zeros(len(gp))
 solution[0:len(truth)]  = aa[:,0]
 solution[len(truth)]    = v1[0]
 solution[len(truth)+1]  = v2[0]
 solution[len(truth)+2]  = v3[0]
 solution[len(truth)+3]  = v4[0]
 
-if 0:
-    P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2 = aa[:,0]
-    fig = plt.figure(figsize=(10, 7))
-    frame1 = fig.add_axes((.15,.3,.8,.6))
-    frame1.axhline(y=0, color='k', ls='--', alpha=.3)
-    t_sample    = np.linspace(min(x), max(x), num=10001, endpoint=True)
-    # Planet 1 #
-    Planet1     = Model(P1=P1/100, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, 
-                        P2=P2/100, tau2=tau2/1000, k2=0, w2=w2, e2=e2, offset1=offset1, offset2=0)
-    y1          = Planet1.get_value(t_sample)
-    plt.plot(t_sample, y1, 'b-.', alpha=.3, label='Planet1')
-    # Planet 2 #
-    Planet2     = Model(P1=P1/100, tau1=tau1/1000, k1=0, w1=w1, e1=e1, 
-                        P2=P2/100, tau2=tau2/1000, k2=k2/100, w2=w2, e2=e2, offset1=0, offset2=offset2)
-    y2          = Planet2.get_value(t_sample)
-    plt.plot(t_sample, y2, 'b--', alpha=.3, label='Planet2')
-    # Planet1 + Planet2 #
-    y12         = y1 + y2
-    plt.plot(t_sample, y12, 'b-', alpha=.5, label='Planet1+Planet2')
-    plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0, label='HARPS RV')
-    plt.legend()
-    plt.ylabel("Radial velocity [m/s]")
+P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2 = aa[:,0]
+fig = plt.figure(figsize=(10, 7))
+frame1 = fig.add_axes((.15,.3,.8,.6))
+frame1.axhline(y=0, color='k', ls='--', alpha=.3)
+t_sample    = np.linspace(min(x), max(x), num=10001, endpoint=True)
+# Planet 1 #
+Planet1     = Model(P1=P1/100, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, 
+                    P2=P2/100, tau2=tau2/1000, k2=0, w2=w2, e2=e2, offset1=offset1, offset2=0)
+y1          = Planet1.get_value(t_sample)
+plt.plot(t_sample, y1, 'b-.', alpha=.3, label='Planet1')
+# Planet 2 #
+Planet2     = Model(P1=P1/100, tau1=tau1/1000, k1=0, w1=w1, e1=e1, 
+                    P2=P2/100, tau2=tau2/1000, k2=k2/100, w2=w2, e2=e2, offset1=0, offset2=offset2)
+y2          = Planet2.get_value(t_sample)
+plt.plot(t_sample, y2, 'b--', alpha=.3, label='Planet2')
+# Planet1 + Planet2 #
+y12         = y1 + y2
+plt.plot(t_sample, y12, 'b-', alpha=.5, label='Planet1+Planet2')
+plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0, label='HARPS RV')
+plt.legend()
+plt.ylabel("Radial velocity [m/s]")
 
-    fit_curve   = Model(P1=P1/100, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, 
-                        P2=P2/100, tau2=tau2/1000, k2=k2/100, w2=w2, e2=e2, offset1=offset1, offset2=offset2)
-    y_fit       = fit_curve.get_value(x)
+fit_curve   = Model(P1=P1/100, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, 
+                    P2=P2/100, tau2=tau2/1000, k2=k2/100, w2=w2, e2=e2, offset1=offset1, offset2=offset2)
+y_fit       = fit_curve.get_value(x)
 
-    residual    = y_fit - y
-    chi2        = sum(residual**2 / yerr**2)
-    rms         = np.sqrt(np.mean(residual**2))
-    wrms        = np.sqrt(sum((residual/yerr)**2) / sum(1/yerr**2))
+residual    = y_fit - y
+chi2        = sum(residual**2 / yerr**2)
+rms         = np.sqrt(np.mean(residual**2))
+wrms        = np.sqrt(sum((residual/yerr)**2) / sum(1/yerr**2))
 
-    frame2  = fig.add_axes((.15,.1,.8,.2))   
-    frame2.axhline(y=0, color='k', ls='--', alpha=.3)
-    plt.errorbar(x, residual, yerr=yerr, fmt=".k", capsize=0)
-    plt.xlabel("BJD - 2400000")
-    plt.ylabel('Residual [m/s]')
-    plt.savefig(star+'-4-MCMC_fit.png')
-    plt.close("all")
+frame2  = fig.add_axes((.15,.1,.8,.2))   
+frame2.axhline(y=0, color='k', ls='--', alpha=.3)
+plt.errorbar(x, residual, yerr=yerr, fmt=".k", capsize=0)
+plt.xlabel("BJD - 2400000")
+plt.ylabel('Residual [m/s]')
+plt.savefig(star+'-4-MCMC_fit.png')
+plt.close("all")
 
 
 # Make the maximum likelihood prediction
@@ -340,7 +328,6 @@ std = np.sqrt(var)
 
 
 # Plot the data
-plt.figure()
 color = "#ff7f0e"
 plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
 plt.plot(t, mu, color=color)

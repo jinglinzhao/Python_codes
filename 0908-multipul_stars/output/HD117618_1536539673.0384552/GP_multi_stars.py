@@ -7,20 +7,22 @@ from rv import solve_kep_eqn
 #==============================================================================
 # Import data 
 #==============================================================================
-star    = 'HD7449'
+star    = 'HD117618'
 
 if star == 'HD117618':
     AAT     = np.loadtxt('../data/HD117618_AAT.vels')
     HARPS1  = np.loadtxt('../data/HD117618_HARPSbinjit.vels')
     HARPS2  = np.loadtxt('../data/HD117618_HARPSbinjit2.vels')
-    t       = np.hstack((AAT[:,0], HARPS1[:,0], HARPS2[:,0]))
+    x       = np.hstack((AAT[:,0], HARPS1[:,0], HARPS2[:,0]))
     y       = np.hstack((AAT[:,1], HARPS1[:,1], HARPS2[:,1]))
     yerr    = np.hstack((AAT[:,2], HARPS1[:,2], HARPS2[:,2]))
 
-if star == 'HD7449':
+if star == 'HD7449':    
+#http://www.openexoplanetcatalogue.com/planet/HD%207449%20b/
+# The host star shows signs of short-term activity due to magnetic features on the stellar surface. 
     HARPS1  = np.loadtxt('../data/HD7449_HARPSbinjit.vels')
     HARPS2  = np.loadtxt('../data/HD7449_HARPSbinjit2.vels')
-    t       = np.hstack((HARPS1[:,0], HARPS2[:,0]))
+    x       = np.hstack((HARPS1[:,0], HARPS2[:,0]))
     y       = np.hstack((HARPS1[:,1], HARPS2[:,1]))
     yerr    = np.hstack((HARPS1[:,2], HARPS2[:,2]))
 
@@ -68,7 +70,7 @@ if star == 'HD117618':
 if star == 'HD7449':
     ax.axvline(x=1275, color='k')
     ax.axvline(x=4046, color='k')
-    frequency0, power0 = LombScargle(AAT[:,0], AAT[:,1], AAT[:,2]).autopower(minimum_frequency=min_f,
+    frequency0, power0 = LombScargle(HARPS1[:,0], HARPS1[:,1], HARPS1[:,2]).autopower(minimum_frequency=min_f,
                                                                             maximum_frequency=max_f,
                                                                             samples_per_peak=spp)
 plt.plot(1/frequency0, power0, '-', linewidth=2.0)
@@ -84,33 +86,59 @@ plt.savefig(star+'-1-Periodogram.png')
 import george
 from george.modeling import Model
 
-class Model(Model):
-    parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'd_aat', 'd_harps1', 'd_harps2')
+if star == 'HD117618':
 
-    def get_value(self, t):
+    class Model(Model):
+        parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'd_aat', 'd_harps1', 'd_harps2')
 
-        # Planet 1
-        M_anom1 = 2*np.pi/(100*self.P1) * (t - 1000*self.tau1)
-        e_anom1 = solve_kep_eqn(M_anom1, self.e1)
-        f1      = 2*np.arctan( np.sqrt((1+self.e1)/(1-self.e1))*np.tan(e_anom1*.5) )
-        rv1     = 100*self.k1*(np.cos(f1 + self.w1) + self.e1*np.cos(self.w1))
-        
-        # Planet 2
-        M_anom2 = 2*np.pi/(100*self.P2) * (t - 1000*self.tau2)
-        e_anom2 = solve_kep_eqn(M_anom2, self.e2)
-        f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
-        rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
+        def get_value(self, t):
+            # Planet 1
+            M_anom1 = 2*np.pi/(100*self.P1) * (t - 1000*self.tau1)
+            e_anom1 = solve_kep_eqn(M_anom1, self.e1)
+            f1      = 2*np.arctan( np.sqrt((1+self.e1)/(1-self.e1))*np.tan(e_anom1*.5) )
+            rv1     = 100*self.k1*(np.cos(f1 + self.w1) + self.e1*np.cos(self.w1))
+            # Planet 2
+            M_anom2 = 2*np.pi/(100*self.P2) * (t - 1000*self.tau2)
+            e_anom2 = solve_kep_eqn(M_anom2, self.e2)
+            f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
+            rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
-        offset = np.zeros(len(t))
-        for i in range(len(t)):
-            if t[i] in AAT[:,0]:
-                offset[i] = self.d_aat
-            elif t[i] in HARPS1[:,0]:
-                offset[i] = self.d_harps1
-            elif t[i] in HARPS2[:,0]:
-                offset[i] = self.d_harps2           
+            offset = np.zeros(len(t))
+            for i in range(len(t)):
+                if t[i] in AAT[:,0]:
+                    offset[i] = self.d_aat
+                elif t[i] in HARPS1[:,0]:
+                    offset[i] = self.d_harps1
+                elif t[i] in HARPS2[:,0]:
+                    offset[i] = self.d_harps2           
 
-        return rv1 + rv2 + offset
+            return rv1 + rv2 + offset
+
+if star == 'HD7449':
+
+    class Model(Model):
+        parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'd_harps1', 'd_harps2')
+
+        def get_value(self, t):
+            # Planet 1
+            M_anom1 = 2*np.pi/(100*self.P1) * (t - 1000*self.tau1)
+            e_anom1 = solve_kep_eqn(M_anom1, self.e1)
+            f1      = 2*np.arctan( np.sqrt((1+self.e1)/(1-self.e1))*np.tan(e_anom1*.5) )
+            rv1     = 100*self.k1*(np.cos(f1 + self.w1) + self.e1*np.cos(self.w1))
+            # Planet 2
+            M_anom2 = 2*np.pi/(100*self.P2) * (t - 1000*self.tau2)
+            e_anom2 = solve_kep_eqn(M_anom2, self.e2)
+            f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
+            rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
+
+            offset = np.zeros(len(t))
+            for i in range(len(t)):
+                if t[i] in HARPS1[:,0]:
+                    offset[i] = self.d_harps1
+                elif t[i] in HARPS2[:,0]:
+                    offset[i] = self.d_harps2           
+
+            return rv1 + rv2 + offset
 
 #==============================================================================
 # GP
@@ -121,15 +149,25 @@ k1      = kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(100),
                                 bounds=dict(gamma=(0,100), log_period=(0,10)))
 k2      = np.std(y) * kernels.ExpSquaredKernel(100)
 kernel  = k1 * k2
-truth   = dict(P1=0.5, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.4, 
-             P2=3., tau2=0.1, k2=np.std(y)/100, w2=0., e2=0.4, 
-             d_aat=0., d_harps1=0., d_harps2=0.)
-kwargs  = dict(**truth)
-kwargs["bounds"] = dict(P1=(0, 1000), k1=(0,0.3), w1=(-2*np.pi,2*np.pi), e1=(0,0.9), 
-                        P2=(0, 1000), k2=(0,0.3), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
+
+if star == 'HD117618':
+    truth   = dict(P1=0.25, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.4, 
+                   P2=3.1, tau2=0.1, k2=np.std(y)/100, w2=0., e2=0.4, 
+                   d_aat=0., d_harps1=0., d_harps2=0.)
+    kwargs  = dict(**truth)
+    kwargs["bounds"] = dict(P1=(0, 1), k1=(0,0.3), w1=(-2*np.pi,2*np.pi), e1=(0,0.9), 
+                            P2=(0, 10), k2=(0,0.3), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
+if star == 'HD7449':
+    truth   = dict(P1=1.27, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.4, 
+                   P2=40.46, tau2=0.1, k2=np.std(y)/100, w2=0., e2=0.4, 
+                   d_harps1=0., d_harps2=0.)
+    kwargs  = dict(**truth)
+    kwargs["bounds"] = dict(P1=(0, 200), k1=(0,0.3), w1=(-2*np.pi,2*np.pi), e1=(0,0.9), 
+                            P2=(0, 200), k2=(0,0.3), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
+
 mean_model = Model(**kwargs)
 gp = george.GP(kernel, mean=mean_model, fit_mean=True)
-gp.compute(t, yerr)
+gp.compute(x, yerr)
 
 def lnprob2(p):
     gp.set_parameter_vector(p)
@@ -156,9 +194,9 @@ print("Running second burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
 p0, _, _ = sampler.run_mcmc(p0, 3000)
 
-print("Running third burn-in...")
-p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 3000)
+# print("Running third burn-in...")
+# p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
+# p0, _, _ = sampler.run_mcmc(p0, 3000)
 
 print("Running production...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
@@ -173,7 +211,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, 3000:, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, -3000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
 real_samples[:,1]   = 10*real_samples[:,1]
 real_samples[:,6]   = 10*real_samples[:,6]
@@ -181,7 +219,7 @@ real_samples[:,0:3] = 100*real_samples[:,0:3]
 real_samples[:,5:8] = 100*real_samples[:,5:8]
 idx = real_samples[:,3] > 0
 real_samples[idx,3] = real_samples[idx, 3] - 2*np.pi
-idx = real_samples[:,8] < 3
+idx = real_samples[:,8] < 0
 real_samples[idx,8] = real_samples[idx, 8] + 2*np.pi
 
 
@@ -193,7 +231,7 @@ for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
     ax.set_xlim(0, sampler.chain.shape[1])
-    ax.set_ylabel(labels_log[i])
+    ax.set_ylabel(labels[i])
     ax.yaxis.set_label_coords(-0.1, 0.5)
 
 axes[-1].set_xlabel("step number");
@@ -213,13 +251,13 @@ plt.savefig(star+'-3-Corner.png')
 #==============================================================================
 # Output
 #==============================================================================
-vv = np.zeros(11)
+vv = np.zeros(len(gp) - len(truth))
 # aaa= np.zeros(12)
 # np.hstack((vv, aaa)) = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
 
-a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11 = map(lambda v: 
+a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, v1, v2, v3, v4 = map(lambda v: 
 	(v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
-aa = np.zeros((12,3))
+aa = np.zeros((len(truth),3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
 aa[2,:] = [a2[i] for i in range(3)]
@@ -232,21 +270,15 @@ aa[8,:] = [a8[i] for i in range(3)]
 aa[9,:] = [a9[i] for i in range(3)]
 aa[10,:]= [a10[i] for i in range(3)]
 aa[11,:]= [a11[i] for i in range(3)]
-np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
+aa[12,:]= [a12[i] for i in range(3)]
+np.savetxt(star+'_fit.txt', aa, fmt='%.6f')
 
 solution = np.zeros(len(gp))
-solution[12] = v1[0]
-solution[13] = v2[0]
-solution[14] = v3[0]
-solution[15] = v4[0]
-solution[16] = v5[0]
-solution[17] = v6[0]
-solution[18] = v7[0]
-solution[19] = v8[0]
-solution[20] = v9[0]
-solution[21] = v10[0]
-solution[22] = v11[0]
-solution[0:12] = aa[:,0]
+solution[0:len(truth)]  = aa[:,0]
+solution[len(truth)]    = v1[0]
+solution[len(truth)+1]  = v2[0]
+solution[len(truth)+2]  = v3[0]
+solution[len(truth)+3]  = v4[0]
 
 P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2 = aa[:,0]
 fig = plt.figure(figsize=(10, 7))
@@ -284,7 +316,7 @@ frame2.axhline(y=0, color='k', ls='--', alpha=.3)
 plt.errorbar(x, residual, yerr=yerr, fmt=".k", capsize=0)
 plt.xlabel("BJD - 2400000")
 plt.ylabel('Residual [m/s]')
-plt.savefig('HD85390-4-MCMC_fit.png')
+plt.savefig(star+'-4-MCMC_fit.png')
 plt.close("all")
 
 
@@ -304,8 +336,8 @@ plt.ylabel(r"$y$")
 plt.xlabel(r"$t$")
 # plt.xlim(-5, 5)
 plt.gca().yaxis.set_major_locator(plt.MaxNLocator(5))
-plt.title("HD85390 - maximum likelihood prediction");
-plt.savefig('HD85390-5-prediction.png')
+plt.title(star+ " - maximum likelihood prediction");
+plt.savefig(star+'-5-prediction.png')
 plt.close('all')
 
 # os.chdir('..')

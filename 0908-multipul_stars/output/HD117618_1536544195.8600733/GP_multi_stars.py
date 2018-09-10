@@ -7,7 +7,7 @@ from rv import solve_kep_eqn
 #==============================================================================
 # Import data 
 #==============================================================================
-star    = 'HD7449'
+star    = 'HD117618'
 
 if star == 'HD117618':
     AAT     = np.loadtxt('../data/HD117618_AAT.vels')
@@ -158,11 +158,11 @@ if star == 'HD117618':
     kwargs["bounds"] = dict(P1=(0, 1), k1=(0,0.3), w1=(-2*np.pi,2*np.pi), e1=(0,0.9), 
                             P2=(2, 4), k2=(0,0.3), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
 if star == 'HD7449':
-    truth   = dict(P1=12.75, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.8, 
+    truth   = dict(P1=1.275, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.8, 
                    P2=40.46, tau2=0.1, k2=np.std(y)/100, w2=0., e2=0.5, 
                    d_harps1=0., d_harps2=0.)
     kwargs  = dict(**truth)
-    kwargs["bounds"] = dict(P1=(0, 20), k1=(0,1.), w1=(-2*np.pi,2*np.pi), e1=(0,0.95), 
+    kwargs["bounds"] = dict(P1=(0, 2), k1=(0,1.), w1=(-2*np.pi,2*np.pi), e1=(0,0.95), 
                             P2=(30, 50), k2=(0,1.), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
 
 mean_model = Model(**kwargs)
