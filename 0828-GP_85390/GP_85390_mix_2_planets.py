@@ -67,13 +67,10 @@ class Model(Model):
 #==============================================================================
 from george import kernels
 
-from george import kernels
-
 k1 = 1**2 * kernels.ExpSquaredKernel(metric=10**2)
 k2 = 1**2 * kernels.ExpSquaredKernel(90**2) * kernels.ExpSine2Kernel(gamma=1, log_period=1.8)
 k3 = 0.66**2 * kernels.RationalQuadraticKernel(log_alpha=np.log(0.78), metric=1.2**2)
-k4 = 0.18**2 * kernels.ExpSquaredKernel(1.6**2)
-kernel = k1 + k2 + k3 + k4
+kernel = k1 + k2 + k3
 
 truth = dict(P1=8., tau1=1., k1=np.std(y)/100, w1=0., e1=0.4, 
             P2=100, tau2=1., k2=np.std(y)/100, w2=0., e2=0.4, offset1=0., offset2=0.)
@@ -81,7 +78,7 @@ kwargs = dict(**truth)
 kwargs["bounds"] = dict(P1=(7.5,8.5), k1=(0,0.1), w1=(-2*np.pi,2*np.pi), e1=(0,0.9), 
 					   tau2=(-50,50), k2=(0,0.2), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
 mean_model = Model(**kwargs)
-gp = george.GP(kernel, mean=mean_model, fit_mean=True)
+gp = george.GP(kernel, mean=mean_model, fit_mean=True, white_noise=np.log(0.5**2), fit_white_noise=True)
 gp.compute(t, yerr)
 
 def lnprob2(p):
@@ -126,7 +123,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, 6000:, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, 3000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
 real_samples[:,1]   = 10*real_samples[:,1]
 real_samples[:,6]   = 10*real_samples[:,6]
@@ -134,14 +131,15 @@ real_samples[:,0:3] = 100*real_samples[:,0:3]
 real_samples[:,5:8] = 100*real_samples[:,5:8]
 idx = real_samples[:,3] > 0
 real_samples[idx,3] = real_samples[idx, 3] - 2*np.pi
-idx = real_samples[:,8] < 3
+idx = real_samples[:,8] < 0
 real_samples[idx,8] = real_samples[idx, 8] + 2*np.pi
 
 
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
-labels_log=[r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
-            r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{1000}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
-            "offset1", "offset2", "1", "2", "3", "4", '5', '6', '7', '8', '9', '10', '11']
+labels_log = names
+# labels_log=[r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
+#             r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{1000}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
+#             "offset1", "offset2", "1", "2", "3", "4", '5', '6', '7', '8', '9', '10', '11']
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -157,7 +155,7 @@ plt.savefig('HD85390-2-Trace.png')
 import corner
 labels=[r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", 
 		r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", 
-        "offset1", "offset2", "1", "2", "3", "4", '5', '6', '7', '8', '9', '10', '11']
+        "offset1", "offset2", "1", "2", "3", "4", '5', '6', '7', '8', '9', '10']
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
 plt.savefig('HD85390-3-Corner.png')
 # plt.show()
@@ -166,12 +164,12 @@ plt.savefig('HD85390-3-Corner.png')
 #==============================================================================
 # Output
 #==============================================================================
-vv = np.zeros(11)
+# vv = np.zeros(11)
 # aaa= np.zeros(12)
 # np.hstack((vv, aaa)) = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
 
-a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11 = map(lambda v: 
-	(v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
+a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10 = map(lambda v: 
+	(v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
 aa = np.zeros((12,3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
@@ -197,8 +195,6 @@ solution[17] = v6[0]
 solution[18] = v7[0]
 solution[19] = v8[0]
 solution[20] = v9[0]
-solution[21] = v10[0]
-solution[22] = v11[0]
 solution[0:12] = aa[:,0]
 
 P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2 = aa[:,0]

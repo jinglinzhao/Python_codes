@@ -78,12 +78,12 @@ kwargs = dict(**truth)
 kwargs["bounds"] = dict(P1=(7.5,8.5), k1=(0,0.1), w1=(-2*np.pi,2*np.pi), e1=(0,0.9), 
 					   tau2=(-50,50), k2=(0,0.2), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
 mean_model = Model(**kwargs)
-gp = george.GP(kernel, mean=mean_model, fit_mean=True)
+gp = george.GP(kernel, mean=mean_model, fit_mean=True, white_noise=np.log(0.5**2), fit_white_noise=True)
 gp.compute(t, yerr)
 
 def lnprob2(p):
     gp.set_parameter_vector(p)
-    return gp.log_likelihood(y, quiet=True) + gp.log_prior()           
+    return gp.log_likelihood(y, quiet=True) + gp.log_prior()
 
 #==============================================================================
 # MCMC
@@ -91,7 +91,8 @@ def lnprob2(p):
 import emcee
 
 initial = gp.get_parameter_vector()
-ndim, nwalkers = len(initial), 32
+names = gp.get_parameter_names()
+ndim, nwalkers = len(initial), 36
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob2, threads=14)
 
 import time
@@ -122,7 +123,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, 4000:, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, -3000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
 real_samples[:,1]   = 10*real_samples[:,1]
 real_samples[:,6]   = 10*real_samples[:,6]
@@ -135,9 +136,9 @@ real_samples[idx,8] = real_samples[idx, 8] + 2*np.pi
 
 
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
-labels_log=[r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
+labels_log=np.hstack(([r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
             r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{1000}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
-            "offset1", "offset2", "1", "2", "3", "4"]
+            "offset1", "offset2"], names[-5:]))
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -151,8 +152,8 @@ plt.savefig('HD85390-2-Trace.png')
 
 
 import corner
-labels=[r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", 
-		r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", "offset1", "offset2", "1", "2", "3", "4"]
+labels=np.hstack(([r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", 
+		r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", "offset1", "offset2"], names[-5:]))
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
 plt.savefig('HD85390-3-Corner.png')
 # plt.show()
@@ -162,7 +163,7 @@ plt.savefig('HD85390-3-Corner.png')
 # Output
 #==============================================================================
 
-a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v0, v1, v2, v3 = map(lambda v: 
+a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v0, v1, v2, v3, v4 = map(lambda v: 
 	(v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
 aa = np.zeros((12,3))
 aa[0,:] = [a0[i] for i in range(3)]
@@ -179,11 +180,12 @@ aa[10,:]= [a10[i] for i in range(3)]
 aa[11,:]= [a11[i] for i in range(3)]
 np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
 
-solution = np.zeros(16)
+solution = np.zeros(17)
 solution[12] = v0[0]
 solution[13] = v1[0]
 solution[14] = v2[0]
 solution[15] = v3[0]
+solution[16] = v4[0]
 solution[0:12] = aa[:,0]
 
 P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2 = aa[:,0]
