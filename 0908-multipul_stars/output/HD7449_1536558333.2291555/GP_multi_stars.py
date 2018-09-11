@@ -161,22 +161,19 @@ if star == 'HD117618':
 
 if star == 'HD7449':
     k1      = kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(14), 
-                                    bounds=dict(gamma=(0,100), log_period=(1,3)))
-    k2      = kernels.ConstantKernel(log_constant=np.log(0.1, ), bounds=dict(log_constant=(-5,2))) \
-            * kernels.ExpSquaredKernel(100)
+                                    bounds=dict(gamma=(0,100), log_period=(0,3)))
+    k2      = np.std(y) * kernels.ExpSquaredKernel(100)
     kernel  = k1 * k2    
     truth   = dict(P1=12.75, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.8, 
                    P2=40.46, tau2=0.1, k2=np.std(y)/100, w2=0., e2=0.5, 
                    d_harps1=0., d_harps2=0.)
     kwargs  = dict(**truth)
-    kwargs["bounds"] = dict(P1=(12.5, 13.0), k1=(0,1.), w1=(-2*np.pi,2*np.pi), e1=(0.7,0.95), 
-                            P2=(35, 45), k2=(0,1.), w2=(-2*np.pi,2*np.pi), e2=(0.4,0.95))
+    kwargs["bounds"] = dict(P1=(10, 15), k1=(0,1.), w1=(-2*np.pi,2*np.pi), e1=(0.7,0.95), 
+                            P2=(35, 45), k2=(0,1.), w2=(-2*np.pi,2*np.pi), e2=(0.4,0.65))
 
 mean_model = Model(**kwargs)
-gp = george.GP(kernel, mean=mean_model, fit_mean=True, white_noise=np.log(0.5**2), fit_white_noise=True)
-# gp.freeze_parameter('kernel:k2:k1:log_constant')
+gp = george.GP(kernel, mean=mean_model, fit_mean=True)
 gp.compute(x, yerr)
-lnp1 = gp.log_likelihood(y)
 
 def lnprob2(p):
     gp.set_parameter_vector(p)
@@ -203,9 +200,9 @@ print("Running second burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
 p0, _, _ = sampler.run_mcmc(p0, 3000)
 
-print("Running third burn-in...")
-p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 3000)
+# print("Running third burn-in...")
+# p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
+# p0, _, _ = sampler.run_mcmc(p0, 3000)
 
 print("Running production...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
@@ -240,7 +237,7 @@ if star == 'HD117618':
 if star == 'HD7449':
     labels      = np.hstack(([r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
                               r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{1000}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
-                              "d_harps1", "d_harps2"], names[-5:]))
+                              "d_harps1", "d_harps2"], names[-4:]))
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -256,11 +253,11 @@ import corner
 if star == 'HD117618':
     labels= np.hstack(([r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", 
                         r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", 
-                        "d_aat", "d_harps1", "d_harps2"], names[-5:]))
+                        "d_aat", "d_harps1", "d_harps2"], names[-4:]))
 if star == 'HD7449':
     labels= np.hstack(([r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", 
                         r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", 
-                        "d_harps1", "d_harps2"], names[-5:]))
+                        "d_harps1", "d_harps2"], names[-4:]))
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
 plt.savefig(star+'-3-Corner.png')
 # plt.show()
@@ -272,15 +269,14 @@ aa = np.zeros((len(truth),3))
 solution = np.zeros(len(gp))
 
 if star == 'HD117618':
-    a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, v1, v2, v3, v4= map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
+    a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, v1, v2, v3, v4 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
                                                             zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
     aa[12,:]= [a12[i] for i in range(3)]
 
 if star == 'HD7449':
-    # a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v1, v2, v3, v4 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
-    #                                                         zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
-    a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v1, v2, v3, v4, v5 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
+    a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v1, v2, v3, v4 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
                                                             zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
+
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
 aa[2,:] = [a2[i] for i in range(3)]
@@ -300,7 +296,6 @@ solution[len(truth)]    = v1[0]
 solution[len(truth)+1]  = v2[0]
 solution[len(truth)+2]  = v3[0]
 solution[len(truth)+3]  = v4[0]
-solution[len(truth)+4]  = v5[0]
 
 if 0:
 
@@ -357,7 +352,6 @@ plt.close("all")
 
 # Make the maximum likelihood prediction
 gp.set_parameter_vector(solution)
-lnp2 = gp.log_likelihood(y)
 mu, var = gp.predict(y, t, return_var=True)
 std = np.sqrt(var)
 
@@ -375,8 +369,6 @@ plt.savefig(star+'-5-prediction.png')
 plt.close('all')
 
 print(star+' finished')
-print(lnp1)
-print(lnp2)
 # os.chdir('..')
 
 
