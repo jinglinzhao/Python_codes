@@ -135,29 +135,29 @@ for n in range(N):
     #==============================================================================
 
 
-    import scipy.optimize as op
+    # import scipy.optimize as op
 
-    def lnprior(theta):
-        a2, k2, phi2, b2 = theta
-        if (-5 < a2 <5) and (-5 < k2 <5) and (-2*np.pi < phi2 < 2*np.pi) and (-10. < b2 < 10):
-            return 0.0
-        return np.inf
+    # def lnprior(theta):
+    #     a2, k2, phi2, b2 = theta
+    #     if (-5 < a2 <5) and (-5 < k2 <5) and (-2*np.pi < phi2 < 2*np.pi) and (-10. < b2 < 10):
+    #         return 0.0
+    #     return np.inf
 
-    def lnlike(theta, x, y, yerr):
-        a2, k2, phi2, b2 = theta
-        model = np.exp(a2) * np.sin(x/100. * np.exp(k2) * 2. * np.pi + phi2) + b2
-        return -0.5*(np.sum( ((y-model)/yerr)**2. ))
+    # def lnlike(theta, x, y, yerr):
+    #     a2, k2, phi2, b2 = theta
+    #     model = np.exp(a2) * np.sin(x/100. * np.exp(k2) * 2. * np.pi + phi2) + b2
+    #     return -0.5*(np.sum( ((y-model)/yerr)**2. ))
 
-    def lnprob2(theta2, x, y, yerr):
-        lp2 = lnprior2(theta2)
-        if not np.isfinite(lp2):
-            return -np.inf
-        return lp2 + lnlike2(theta2, x, y, yerr)    
-    # Define the objective function (negative log-likelihood in this case).
-    def nll(p):
-        gp.set_parameter_vector(p)
-        ll = gp.log_likelihood(y, quiet=True)
-        return -ll if np.isfinite(ll) else 1e25
+    # def lnprob2(theta2, x, y, yerr):
+    #     lp2 = lnprior2(theta2)
+    #     if not np.isfinite(lp2):
+    #         return -np.inf
+    #     return lp2 + lnlike2(theta2, x, y, yerr)    
+    # # Define the objective function (negative log-likelihood in this case).
+    # def nll(p):
+    #     gp.set_parameter_vector(p)
+    #     ll = gp.log_likelihood(y, quiet=True)
+    #     return -ll if np.isfinite(ll) else 1e25
 
 
     print('# MCMC without jitter correction #')
@@ -279,146 +279,85 @@ for n in range(N):
 
 
     #==============================================================================
-    # MCMC with jitter correction (4 parameters)
+    # GP
     #==============================================================================
 
-    if (mode == 4):
-        print('# MCMC with jitter correction (4 parameters) #')
+    y = RV_IN
+    import george
+    from george.modeling import Model
 
-        def lnprior(theta):
-            a, k, phi, b = theta
-            if (-5 < a < 5) and (-5 < k < 5) and (-2*np.pi < phi < 2*np.pi) and (-10. < b < 10.):
-                return 0.0
-            return -np.inf
-
-        # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
-        def lnlike(theta, x, y, yerr):
-            a, k, phi, b = theta
-            m = 0.85
-            model = np.exp(a) * np.sin(x/100. * np.exp(k) * 2. * np.pi + phi) + (RV_diff + b)/(1-m)    
-            return -0.5*(np.sum( ((y-model)/yerr)**2. ))
-
-        def lnprob(theta, x, y, yerr):
-            lp = lnprior(theta)
-            if not np.isfinite(lp):
-                return -np.inf
-            return lp + lnlike(theta, x, y, yerr)    
+    class Model(Model):
+        parameter_names = ('a', 'k', 'phi', 'b', 'm')
+        def get_value(self, t):
+            return np.exp(self.a) * np.sin(t/100. * np.exp(self.k) * 2. * np.pi + self.phi) + (RV_diff + self.b) * np.exp(self.m)
 
 
-        import emcee
-        ndim    = 4
-        nwalkers = 32
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, RV_IN, yerr))
+    from george import kernels
 
-        print("Running first burn-in...")
-        pos     = [[np.log(np.var(RV_IN)), np.log(5), 1., 0.] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
-        pos, prob, state  = sampler.run_mcmc(pos, burn_in_1_step)
+    # k1      = kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(100), bounds=dict(gamma=(0,10), log_period=(1,6)))
+    k2      = np.std(y) * kernels.ExpSquaredKernel(100)
+    # k3      = 0.66**2 * kernels.RationalQuadraticKernel(log_alpha=np.log(0.78), metric=1.2**2)
+    kernel  = k2
 
-        print("Running second burn-in...")
-        pos = [pos[np.argmax(prob)] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
-        pos, prob, state  = sampler.run_mcmc(pos, burn_in_2_step)
+    truth = dict(a=np.log(2.), k=np.log(0.7), phi=1., b=0., m=-0.2)
+    kwargs = dict(**truth)
+    kwargs["bounds"] = dict(a=(0,5), k=(-3,3), phi=(-2*np.pi,2*np.pi), b=(-2,2), m=(-1,3))
+    mean_model = Model(**kwargs)
+    gp = george.GP(kernel, mean=mean_model, fit_mean=True)
+    gp.compute(x, yerr)
+    names = gp.get_parameter_names()
 
-        print("Running production...")
-        sampler.run_mcmc(pos, production_step)
-
-
-        #==============================================================================
-        # Trace and corner plots 
-        #==============================================================================
-
-        fig, axes = plt.subplots(ndim, figsize=(10, 7), sharex=True)
-        labels_log=[r"$\log\ P$", r"$\log\ K$", r"$\omega$", r"$\delta$"]
-        for i in range(ndim):
-            ax = axes[i]
-            ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
-            ax.set_xlim(0, sampler.chain.shape[1])
-            ax.set_ylabel(labels_log[i])
-            ax.yaxis.set_label_coords(-0.1, 0.5)
-
-        axes[-1].set_xlabel("Step number");
-        plt.savefig('3-Trace1.png')
-
-
-        import copy
-        log_samples         = sampler.chain[:, 4000:, :].reshape((-1, ndim))
-        real_samples        = copy.copy(log_samples)
-        real_samples[:,0:2] = np.exp(real_samples[:,0:2])
-
-        import corner
-        fig = corner.corner(real_samples, labels=["$a$", "$k$", "$phi$", "$b$"], truths=[real_a, real_k, real_phi, 0],
-                            quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
-        plt.savefig('3-MCMC1.png')
-
-
-        #==============================================================================
-        # Statistics
-        #==============================================================================        
-        a, k, phi, b = map(lambda v: np.array(v), zip(*np.percentile(real_samples, [50, 16, 84, 2.5, 97.5], axis=0)))
-
-        if (a[1] < real_a < a[2]):
-            yes1_a1 += 1
-        if (k[1] < real_k < k[2]):
-            yes1_k1 += 1
-        if (a[3] < real_a < a[4]):
-            yes1_a2 += 1
-        if (k[3] < real_k < k[4]):
-            yes1_k2 += 1
-        if (a[1] < real_a < a[2]) and (k[1] < real_k < k[2]):
-            yes1_both1 += 1
-            print('Bingo - FT correction - 1 sigma')
-        if (a[3] < real_a < a[4]) and (k[3] < real_k < k[4]):
-            yes1_both2 += 1
-            print('Bingo - FT correction - 2 sigma')
-
-        print(np.vstack((a, k, phi, b)))
-
-        m = [0.85]
-
-
+    def lnprob(p):
+        gp.set_parameter_vector(p)
+        return gp.log_likelihood(y, quiet=True) + gp.log_prior()          
     #==============================================================================
     # MCMC with jitter correction (5 parameters)
     #==============================================================================
+
+
+
 
     if (mode == 5):
         print('# MCMC with jitter correction (5 parameters) #')
 
 
-        def lnprior(theta):
-            a, k, phi, m, b = theta
-            if (-5 < a < 5) and (-5 < k < 5) and (-2*np.pi < phi < 2*np.pi) and (1 < m < 3) and (-10. < b < 10.):
-                return 0.0
-            return -np.inf
+        # def lnprior(theta):
+        #     a, k, phi, m, b = theta
+        #     if (-5 < a < 5) and (-5 < k < 5) and (-2*np.pi < phi < 2*np.pi) and (1 < m < 3) and (-10. < b < 10.):
+        #         return 0.0
+        #     return -np.inf
 
-        # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
-        def lnlike(theta, x, y, yerr):
-            a, k, phi, m, b = theta
-            model = np.exp(a) * np.sin(x/100. * np.exp(k) * 2. * np.pi + phi) + (RV_diff + b) * np.exp(m)
-            # model = a * np.sin(x/100. * 7. * 2. * np.pi + phi) * (1-m) + b  + m * np.asarray(RV_IN)
-            # model =  -a * np.sin(x/100. * k * 2. * np.pi + phi) * (1-m)/m + b  + np.asarray(RV_FT)/m
-            return -0.5*(np.sum( ((y-model)/yerr)**2. ))
+        # # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
+        # def lnlike(theta, x, y, yerr):
+        #     a, k, phi, m, b = theta
+        #     model = np.exp(a) * np.sin(x/100. * np.exp(k) * 2. * np.pi + phi) + (RV_diff + b) * np.exp(m)
+        #     # model = a * np.sin(x/100. * 7. * 2. * np.pi + phi) * (1-m) + b  + m * np.asarray(RV_IN)
+        #     # model =  -a * np.sin(x/100. * k * 2. * np.pi + phi) * (1-m)/m + b  + np.asarray(RV_FT)/m
+        #     return -0.5*(np.sum( ((y-model)/yerr)**2. ))
 
-        def lnprob(theta, x, y, yerr):
-            lp = lnprior(theta)
-            if not np.isfinite(lp):
-                return -np.inf
-            return lp + lnlike(theta, x, y, yerr)    
-
+        # def lnprob(theta, x, y, yerr):
+        #     lp = lnprior(theta)
+        #     if not np.isfinite(lp):
+        #         return -np.inf
+        #     return lp + lnlike(theta, x, y, yerr)    
 
         import emcee
-        ndim        = 5
-        nwalkers    = 32
-        sampler     = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, RV_IN, yerr))
+        initial = gp.get_parameter_vector()
+        names = gp.get_parameter_names()     
+        ndim, nwalkers = len(initial), 36
+        sampler     = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=14)
 
         print("Running first burn-in...")
-        pos         = [[np.log(np.var(RV_IN)), np.log(1), 1., 1.6, 0] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
-        pos, prob, state  = sampler.run_mcmc(pos, burn_in_1_step)
+        pos         = initial + 1e-4 * np.random.randn(nwalkers, ndim)
+        pos, prob, _  = sampler.run_mcmc(pos, burn_in_1_step)
 
         print("Running second burn-in...")
-        pos = [pos[np.argmax(prob)] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
-        pos, prob, state  = sampler.run_mcmc(pos, burn_in_2_step)
+        pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
+        pos, prob, _  = sampler.run_mcmc(pos, 2000)
 
         print("Running production...")
-        sampler.run_mcmc(pos, production_step)
+        pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
+        sampler.run_mcmc(pos, 2000)
 
 
         #==============================================================================
@@ -426,7 +365,7 @@ for n in range(N):
         #==============================================================================
 
         fig, axes = plt.subplots(ndim, figsize=(10, 7), sharex=True)
-        labels_log=[r"$\log\ A$", r"$\log\ \nu$", r"$\omega$", r"$\log\ m$", r"$b$"]
+        labels_log= np.hstack(([r"$\log\ A$", r"$\log\ \nu$", r"$\omega$", r"$b$", r"$\log\ m$"], names[-2:]))
         for i in range(ndim):
             ax = axes[i]
             ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -439,13 +378,14 @@ for n in range(N):
 
 
         import copy
-        log_samples         = sampler.chain[:, 4000:, :].reshape((-1, ndim))
+        log_samples         = sampler.chain[:, 2000:4000, :].reshape((-1, ndim))
         real_samples        = copy.copy(log_samples)
         real_samples[:,0:2] = np.exp(real_samples[:,0:2])
-        real_samples[:,3] = np.exp(real_samples[:,3])
+        real_samples[:,4] = np.exp(real_samples[:,4])
 
         import corner
-        fig = corner.corner(real_samples, labels=[r"$A$", r"$\nu$", r"$\omega$", r"$m$", r"$b$"], truths=[real_a, real_k, real_phi, 100, 100],
+        labels = np.hstack(([r"$A$", r"$\nu$", r"$\omega$", r"$b$", r"$m$"], names[-2:]))
+        fig = corner.corner(real_samples, labels=labels,
                             quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
         plt.savefig(new_dir + '3-MCMC1.png')
 
@@ -530,13 +470,29 @@ for n in range(N):
 # Hostogram
 #==============================================================================    
 
+from scipy.stats import norm
+
+
+
+
+# plt.show()
+
 # bins  = np.linspace(bin_min, bin_max, 15)
+mu1, std1 = norm.fit(amplitude1)
+x_plot = np.linspace(mu1-3*std1, mu1+3*std1, 100)
+p_plot = norm.pdf(x_plot, mu1, std1)
+plt.plot(x_plot, p_plot, 'r',  linewidth=2)
+
+mu2, std2 = norm.fit(amplitude2)
+x_plot = np.linspace(mu2-3*std2, mu2+3*std2, 100)
+p_plot = norm.pdf(x_plot, mu2, std2)
+plt.plot(x_plot, p_plot, 'b',  linewidth=2)
 bins = 15
 
 ax = plt.subplot(111)
 ax.axvline(x=real_a, color='k', ls='-.')
 # bins  = np.linspace(2, 7.5, 20)
-plt.hist([amplitude1, amplitude2], bins, color=['r','b'], alpha=0.8)
+plt.hist([amplitude1, amplitude2], bins, density=True, color=['r','b'], alpha=0.7)
 # x_his = 1.0
 # y_his = 14
 # y_space = 1
@@ -551,10 +507,22 @@ plt.ylabel('Count')
 plt.savefig('Histogram_1.png')
 plt.show()
 
+
+
+nu_mu1, nu_std1 = norm.fit(period1)
+x_plot = np.linspace(nu_mu1-3*nu_std1, nu_mu1+3*nu_std1, 100)
+p_plot = norm.pdf(x_plot, nu_mu1, nu_std1)
+plt.plot(x_plot, p_plot, 'r',  linewidth=2)
+
+nu_mu2, nu_std2 = norm.fit(period2)
+x_plot = np.linspace(nu_mu2-3*nu_std2, nu_mu2+3*nu_std2, 100)
+p_plot = norm.pdf(x_plot, nu_mu2, nu_std2)
+plt.plot(x_plot, p_plot, 'b',  linewidth=2)
+
 ax = plt.subplot(111)
 ax.axvline(x=real_k, color='k', ls='-.')
 # bins  = np.linspace(3.65, 4.0, 20)
-plt.hist([period1, period2], bins, color=['r','b'], alpha=0.8)
+plt.hist([period1, period2], bins=30, density=True, color=['r','b'], alpha=0.7)
 # x_his = 3.9
 # y_his = 25
 # y_space = y_his / 20
