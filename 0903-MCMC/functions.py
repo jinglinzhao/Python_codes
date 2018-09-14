@@ -12,7 +12,7 @@ def gran_gen(n_group, n_obs):
 
 	# generate a starting array in which elements are minimum spaced by 9 
 	while True:
-		x_start = np.sort(random.sample(range(200-sample_per_group-1), n_group))
+		x_start = np.sort(random.sample(range(400-sample_per_group-1), n_group))
 
 		if not any(np.diff(x_start) < (sample_per_group + 1)):
 			break
@@ -30,9 +30,9 @@ def gran_gen(n_group, n_obs):
 
 def gaussian_smoothing(t, y, t_smooth, len_smooth):
 
-	y_smooth = np.zeros(len(y))
+	y_smooth = np.zeros(len(t_smooth))
 
-	for i in range(len(t)):
+	for i in range(len(t_smooth)):
 	    weight = np.exp(-(t_smooth[i]-t)**2/(2*len_smooth**2))
 	    y_smooth[i] = sum(y * weight) / sum(weight)
 
