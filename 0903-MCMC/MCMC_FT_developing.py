@@ -143,9 +143,10 @@ for n in range(N):
     Y   = np.array([YY[i] for i in x])
     Z   = np.array([ZZ[i] for i in x])
     J   = np.array([RV_jitter[i] for i in x])
+    range_X = (max(X) - min(X))/2
 
     # smoothing 
-    sl      = 2         # smoothing length
+    sl      = 1         # smoothing length
     XY      = gaussian_smoothing(x, X-Y, x, sl)
     ZX      = gaussian_smoothing(x, Z-X, x, sl)    
 
@@ -254,15 +255,15 @@ for n in range(N):
     sampler2 = emcee.EnsembleSampler(nwalkers, ndim, lnprob2, args=(x, X, yerr)) # Note that running with multiple threads takes three times the time
 
     print("Running first burn-in...")
-    pos2     = [[np.log(np.std(X)), np.log(1), 1., 0.] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+    pos2     = [[np.log(range_X), np.log(1), 1., 0.] + 1e-1*np.random.randn(ndim) for i in range(nwalkers)] 
     pos2, prob2, state2  = sampler2.run_mcmc(pos2, burn_in_1_step)
 
     print("Running second burn-in...")
-    pos2 = [pos2[np.argmax(prob2)] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+    pos2 = [pos2[np.argmax(prob2)] + 1e-1*np.random.randn(ndim) for i in range(nwalkers)] 
     pos2, prob2, state2  = sampler2.run_mcmc(pos2, burn_in_2_step)
 
     print("Running production...")
-    pos2 = [pos2[np.argmax(prob2)] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+    pos2 = [pos2[np.argmax(prob2)] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
     sampler2.run_mcmc(pos2, production_step)
 
     #==============================================================================
@@ -350,7 +351,7 @@ for n in range(N):
 
     fit         = np.polyfit(XY, ZX, 1)
     XYZ         = 0.5*fit[0]*XY+0.5*ZX
-    rms         = 10
+    rms         = np.std(X) * 100
     chance_amp  = 0
     chance_per  = 0
 
@@ -398,15 +399,15 @@ for n in range(N):
         sampler     = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, X, yerr))
 
         print("Running first burn-in...")
-        pos         = [[np.log(np.std(X)), np.log(1), 1., 0.1, 0.] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+        pos         = [[np.log(range_X), np.log(1), 1., 0.1, 0.] + 1e-1*np.random.randn(ndim) for i in range(nwalkers)] 
         pos, prob, state  = sampler.run_mcmc(pos, burn_in_1_step)
 
         print("Running second burn-in...")
-        pos = [pos[np.argmax(prob)] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+        pos = [pos[np.argmax(prob)] + 1e-1*np.random.randn(ndim) for i in range(nwalkers)] 
         pos, prob, state  = sampler.run_mcmc(pos, burn_in_2_step)
 
         print("Running production...")
-        pos = [pos[np.argmax(prob)] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+        pos = [pos[np.argmax(prob)] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
         sampler.run_mcmc(pos, production_step)
 
 
@@ -533,6 +534,8 @@ for n in range(N):
     # MCMC with jitter correction 2
     #==============================================================================
 
+    print('# MCMC without jitter correction 2 #')
+    
     xmc = np.hstack((x,x)) #dumb
     ymc = np.hstack((Y_s, Z_s)) #dumb
     yerrmc = np.hstack((yerr,yerr)) #dumb
@@ -566,15 +569,15 @@ for n in range(N):
     sampler     = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(xmc, ymc, yerrmc))
 
     print("Running first burn-in...")
-    pos         = [[np.std(X), 1, 0, 0.8, 0, 0] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+    pos         = [[range_X, 1, 0, 0.8, 0, 0] + 1e-1*np.random.randn(ndim) for i in range(nwalkers)] 
     pos, prob, _  = sampler.run_mcmc(pos, burn_in_1_step)
 
     print("Running second burn-in...")
-    pos = [pos[np.argmax(prob)] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+    pos = [pos[np.argmax(prob)] + 1e-1*np.random.randn(ndim) for i in range(nwalkers)] 
     pos, prob, _  = sampler.run_mcmc(pos, burn_in_2_step)
 
     print("Running production...")
-    pos = [pos[np.argmax(prob)] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+    pos = [pos[np.argmax(prob)] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
     sampler.run_mcmc(pos, production_step)
 
     #==============================================================================
@@ -822,8 +825,8 @@ plt.savefig('Histogram_new2.png')
 plt.close('all')
 
 array = np.arange(200)
-idx_a1 = (1.9 < amplitude1) * (amplitude1< 2.1)
-idx_a2 = (1.9 < amplitude2) * (amplitude2< 2.1)
+idx_a1 = (real_a-0.1 < amplitude1) * (amplitude1< real_a+0.1)
+idx_a2 = (real_a-0.1 < amplitude2) * (amplitude2< real_a+0.1)
 idx_p1 = (real_k-0.1 < period1) * (period1< real_k+0.1)
 idx_p2 = (real_k-0.1 < period2) * (period2< real_k+0.1)
 print(sum(idx_a1))
