@@ -78,8 +78,7 @@ kwargs = dict(**truth)
 kwargs["bounds"] = dict(P1=(7.5,8.5), k1=(0,0.1), w1=(-2*np.pi,2*np.pi), e1=(0,0.9), 
 					   tau2=(-50,50), k2=(0,0.2), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
 mean_model = Model(**kwargs)
-gp = george.GP(kernel, mean=mean_model, fit_mean=True)
-# gp = george.GP(kernel, mean=mean_model, fit_mean=True, white_noise=np.log(0.5**2), fit_white_noise=True)
+gp = george.GP(kernel, mean=mean_model, fit_mean=True, white_noise=np.log(0.5**2), fit_white_noise=True)
 gp.compute(t, yerr)
 
 def lnprob2(p):
@@ -124,7 +123,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, -5000:, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, -3000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
 real_samples[:,1]   = 10*real_samples[:,1]
 real_samples[:,6]   = 10*real_samples[:,6]
@@ -163,10 +162,9 @@ plt.savefig('HD85390-3-Corner.png')
 #==============================================================================
 # Output
 #==============================================================================
-a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v0, v1, v2, v3 = map(lambda v: 
-    (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
-# a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v0, v1, v2, v3, v4 = map(lambda v: 
-# 	(v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
+
+a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v0, v1, v2, v3, v4 = map(lambda v: 
+	(v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
 aa = np.zeros((12,3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
@@ -182,12 +180,12 @@ aa[10,:]= [a10[i] for i in range(3)]
 aa[11,:]= [a11[i] for i in range(3)]
 np.savetxt('HD85390_fit.txt', aa, fmt='%.6f')
 
-solution = np.zeros(len(gp))
+solution = np.zeros(17)
 solution[12] = v0[0]
 solution[13] = v1[0]
 solution[14] = v2[0]
 solution[15] = v3[0]
-# solution[16] = v4[0]
+solution[16] = v4[0]
 solution[0:12] = aa[:,0]
 
 P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, offset1, offset2 = aa[:,0]

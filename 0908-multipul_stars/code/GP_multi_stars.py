@@ -151,7 +151,8 @@ if star == 'HD117618':
     k1      = kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(100), 
                                     bounds=dict(gamma=(0,100), log_period=(0,10)))
     k2      = np.std(y) * kernels.ExpSquaredKernel(100)
-    kernel  = k1 * k2
+    k3 = 0.66**2 * kernels.RationalQuadraticKernel(log_alpha=np.log(0.78), metric=1.2**2)
+    kernel  = k1 * k2 + k3
     truth   = dict(P1=0.25, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.4, 
                    P2=3.1, tau2=0.1, k2=np.std(y)/100, w2=0., e2=0.4, 
                    d_aat=0., d_harps1=0., d_harps2=0.)
