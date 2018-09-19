@@ -16,7 +16,7 @@ def gaussian(x, mu, sig):
 # Setup
 #==============================================================================
 
-real_a      = 20
+real_a      = 0
 real_k      = 0.7
 real_phi    = 1.0
 
@@ -75,6 +75,7 @@ RV_jitter   = np.hstack((RV_jitter,RV_jitter, RV_jitter, RV_jitter))
 #==============================================================================
 # Visualization
 #==============================================================================
+plt.rcParams.update({'font.size': 14})
 
 if 0: 
     # plt.plot(t, RV_jitter, '--', label='inout jitter')
@@ -143,7 +144,8 @@ for n in range(N):
     Y   = np.array([YY[i] for i in x])
     Z   = np.array([ZZ[i] for i in x])
     J   = np.array([RV_jitter[i] for i in x])
-    range_X = (max(X) - min(X))/2
+    # range_X = (max(X) - min(X))/2
+    range_X = 1
 
     # smoothing 
     sl      = 1         # smoothing length
@@ -239,7 +241,7 @@ for n in range(N):
     # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
     def lnlike2(theta2, x, y, yerr):
         a2, k2, phi2, b2 = theta2
-        model = np.exp(a2) * np.sin(x/100. * np.exp(k2) * 2. * np.pi + phi2) + b2
+        model = a2 * np.sin(x/100. * np.exp(k2) * 2. * np.pi + phi2) + b2
         return -0.5*(np.sum( ((y-model)/yerr)**2. ))
 
     def lnprob2(theta2, x, y, yerr):
@@ -286,7 +288,7 @@ for n in range(N):
     import copy
     log_samples         = sampler2.chain[:, 3000:, :].reshape((-1, ndim))
     real_samples        = copy.copy(log_samples)
-    real_samples[:,0:2] = np.exp(real_samples[:,0:2])
+    real_samples[:,1:2] = np.exp(real_samples[:,1:2])
 
     import corner
     fig = corner.corner(real_samples, labels=[r"$A$", r"$\nu$", r"$\omega$", r"$b$"], truths=[real_a, real_k, real_phi, 100],
@@ -384,7 +386,7 @@ for n in range(N):
         # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
         def lnlike(theta, x, y, yerr):
             a, k, phi, m, b = theta
-            model = np.exp(a) * np.sin(x/100. * np.exp(k) * 2*np.pi + phi) + (proto_jitter + b) * np.exp(m)
+            model = a * np.sin(x/100. * np.exp(k) * 2*np.pi + phi) + (proto_jitter + b) * np.exp(m)
             return -0.5*(np.sum( ((y-model)/yerr)**2. ))
 
         def lnprob(theta, x, y, yerr):
@@ -431,7 +433,7 @@ for n in range(N):
         import copy
         log_samples         = sampler.chain[:, 3000:, :].reshape((-1, ndim))
         real_samples        = copy.copy(log_samples)
-        real_samples[:,0:2] = np.exp(real_samples[:,0:2])
+        real_samples[:,1:2] = np.exp(real_samples[:,1:2])
         real_samples[:,3] = np.exp(real_samples[:,3])
 
         import corner
@@ -817,25 +819,27 @@ plt.legend()
 
 bins = 20
 ax = plt.subplot(111)
-ax.axvline(x=real_k, color='k', ls='-.')
-plt.hist([period1, period2], color=['r', 'k'], bins=bins, density=True, alpha=0.7)
+# ax.axvline(x=real_k, color='k', ls='-.')
+plt.hist([period1, period2], color=['r', 'k'], bins=bins, density=True, alpha=0.7, label=['Jitter correction','No correction'])
 plt.xlabel(r'$\nu_{orb}$ / $\nu_{rot}$')
 plt.ylabel('Number density')
+plt.legend()
 plt.savefig('Histogram_new2.png')
 plt.close('all')
 
 array = np.arange(200)
-idx_a1 = (real_a-0.1 < amplitude1) * (amplitude1< real_a+0.1)
-idx_a2 = (real_a-0.1 < amplitude2) * (amplitude2< real_a+0.1)
-idx_p1 = (real_k-0.1 < period1) * (period1< real_k+0.1)
-idx_p2 = (real_k-0.1 < period2) * (period2< real_k+0.1)
-print(sum(idx_a1))
-print(sum(idx_a2))
-print(sum(idx_p1))
-print(sum(idx_p2))
+s = 0.05
+idx_a1 = (real_a*(1-s) < amplitude1) * (amplitude1< real_a*(1+s))
+idx_a2 = (real_a*(1-s) < amplitude2) * (amplitude2< real_a*(1+s))
+idx_p1 = (real_k*(1-s) < period1) * (period1< real_k*(1+s))
+idx_p2 = (real_k*(1-s) < period2) * (period2< real_k*(1+s))
+print(sum(idx_a1)/N)
+print(sum(idx_a2)/N)
+print(sum(idx_p1)/N)
+print(sum(idx_p2)/N)
 
-print(sum(idx_a1*idx_p1))
-print(sum(idx_a2*idx_p2))
+print(sum(idx_a1*idx_p1)/N)
+print(sum(idx_a2*idx_p2)/N)
 
 
 
