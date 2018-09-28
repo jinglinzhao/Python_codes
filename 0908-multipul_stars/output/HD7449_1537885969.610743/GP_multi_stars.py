@@ -161,16 +161,16 @@ if star == 'HD117618':
                             P2=(2.5, 3.5), k2=(0,0.3), w2=(-2*np.pi,2*np.pi), e2=(0,0.9))
 
 if star == 'HD7449':
-    k1      = kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(13.3), 
-                                    bounds=dict(gamma=(-3,1), log_period=(np.log(13.3-2.56),np.log(13.3+2.56))))
-    k2      = kernels.ConstantKernel(log_constant=np.log(1.0), bounds=dict(log_constant=(-3,4))) * kernels.ExpSquaredKernel(1.)
+    k1      = kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(14), 
+                                    bounds=dict(gamma=(-1,100), log_period=(1,3)))
+    k2      = kernels.ConstantKernel(log_constant=np.log(0.1), bounds=dict(log_constant=(-5,5))) * kernels.ExpSquaredKernel(1.)
     kernel  = k1 * k2    
     truth   = dict(P1=12.50, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.8, 
                    P2=160., tau2=0.1, k2=np.std(y)/100, w2=0., e2=0.2, 
                    d_harps1=0., d_harps2=0.)
     kwargs  = dict(**truth)
     kwargs["bounds"] = dict(P1=(12.0, 13.0), k1=(0,1.), w1=(-2*np.pi,2*np.pi), e1=(0.7,0.95), 
-                            P2=(35, 200), k2=(0,2.), w2=(-2*np.pi,2*np.pi), e2=(0.,0.8))
+                            P2=(35, 200), k2=(0,2.), w2=(-2*np.pi,2*np.pi), e2=(0.,0.5))
 
 mean_model = Model(**kwargs)
 gp = george.GP(kernel, mean=mean_model, fit_mean=True, white_noise=np.log(0.5**2), fit_white_noise=True)
@@ -197,15 +197,15 @@ time_start  = time.time()
 
 print("Running first burn-in...")
 p0 = initial + 1e-2 * np.random.randn(nwalkers, ndim)
-p0, lp, _ = sampler.run_mcmc(p0, 4000)
+p0, lp, _ = sampler.run_mcmc(p0, 3000)
 
 print("Running second burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-2 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 4000)
+p0, _, _ = sampler.run_mcmc(p0, 3000)
 
-print("Running third burn-in...")
-p0 = p0[np.argmax(lp)] + 1e-2 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 4000)
+# print("Running third burn-in...")
+# p0 = p0[np.argmax(lp)] + 1e-2 * np.random.randn(nwalkers, ndim)
+# p0, _, _ = sampler.run_mcmc(p0, 3000)
 
 print("Running production...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
