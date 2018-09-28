@@ -17,7 +17,7 @@ def gaussian(x, mu, sig):
 #==============================================================================
 
 real_a      = 0
-real_k      = 0
+real_k      = 0.7
 real_phi    = 1.0
 
 N = 200
@@ -120,33 +120,32 @@ if 0:
 #==============================================================================
 # Periodogram
 #==============================================================================
-if 0:
-    from astropy.stats import LombScargle
+from astropy.stats import LombScargle
 
-    # yerr    = 0.5 + np.zeros(XX.shape)
-    min_f   = 0.01
-    max_f   = 0.1
-    spp     = 20
+# yerr    = 0.5 + np.zeros(XX.shape)
+min_f   = 0.01
+max_f   = 0.1
+spp     = 20
 
-    frequency0, power0 = LombScargle(x, X, yerr).autopower(minimum_frequency=min_f,
-                                                       maximum_frequency=max_f,
-                                                       samples_per_peak=spp)
+frequency0, power0 = LombScargle(x, X, yerr).autopower(minimum_frequency=min_f,
+                                                   maximum_frequency=max_f,
+                                                   samples_per_peak=spp)
 
-    frequency1, power1 = LombScargle(x, XY, yerr).autopower(minimum_frequency=min_f,
-                                                       maximum_frequency=max_f,
-                                                       samples_per_peak=spp)
+frequency1, power1 = LombScargle(x, XY, yerr).autopower(minimum_frequency=min_f,
+                                                   maximum_frequency=max_f,
+                                                   samples_per_peak=spp)
 
-    ax = plt.subplot(111)
-    # ax.set_xscale('log')
-    # ax.axhline(y=0, color='k')
-    # ax.axvline(x=8.1256, color='k')
-    # ax.axvline(x=103.49, color='k')
-    plt.plot(frequency0, power0, '-', label='RV_HARPS')
-    plt.plot(frequency1, power1, '-.', label='Jitter')
-    plt.legend()
-    plt.savefig('Periodogram.png')
-    plt.close('all')
-    # plt.show()
+ax = plt.subplot(111)
+# ax.set_xscale('log')
+# ax.axhline(y=0, color='k')
+# ax.axvline(x=8.1256, color='k')
+# ax.axvline(x=103.49, color='k')
+plt.plot(frequency0, power0, '-', label='RV_HARPS')
+plt.plot(frequency1, power1, '-.', label='Jitter')
+plt.legend()
+plt.savefig('Periodogram.png')
+plt.close('all')
+# plt.show()
 
 
 
@@ -471,7 +470,7 @@ for n in range(N):
         log_samples         = sampler.chain[:, 3000:, :].reshape((-1, ndim))
         real_samples        = copy.copy(log_samples)
         real_samples[:,0:2] = np.exp(real_samples[:,0:2])
-        real_samples[:,3] = np.exp(real_samples[:,3])
+        # real_samples[:,3] = np.exp(real_samples[:,3])
 
         import corner
         fig = corner.corner(real_samples, labels=[r"$A$", r"$\nu$", r"$\omega$", r"$m$", r"$b$"], truths=[real_a, real_k, real_phi, 100, 100],
@@ -569,141 +568,11 @@ for n in range(N):
             amplitude1_XYZ[n]   = a[0]
             period1_XYZ[n]      = k[0]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     #==============================================================================
     # Fit with jitter model only
     #==============================================================================
 
-    for proto_jitter in [XY, ZX, XYZ]:
-
-        if (proto_jitter == XY).all():
-            print('# MCMC with XY jitter model #')
-            suffix = '_XY_j'
-
-            def lnprior(theta):
-                m, b = theta
-                if (0 < m < 3) and (-5. < b < 5.):
-                    return 0.0
-                return -np.inf
-
-        else:
-            def lnprior(theta):
-                m, b = theta
-                if (-3 < m < 3) and (-5. < b < 5.):
-                    return 0.0
-                return -np.inf
-
-        if (proto_jitter == ZX).all():
-            print('# MCMC with ZX jitter model #')
-            suffix = '_ZX_j'
-        if (proto_jitter == XYZ).all():
-            print('# MCMC with XYZ jitter model #')
-            suffix = '_XYZ_j'
-
-        # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
-        def lnlike(theta, x, y, yerr):
-            m, b = theta
-            model = (proto_jitter + b) * np.exp(m)
-            return -0.5*(np.sum( ((y-model)/yerr)**2. ))
-
-        def lnprob(theta, x, y, yerr):
-            lp = lnprior(theta)
-            if not np.isfinite(lp):
-                return -np.inf
-            return lp + lnlike(theta, x, y, yerr)    
-
-        import emcee
-        ndim        = 2
-        nwalkers    = 32
-        sampler     = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, X, yerr))
-
-        print("Running first burn-in...")
-        pos         = [[0.5, 0.] + 1e-1*np.random.randn(ndim) for i in range(nwalkers)] 
-        pos, prob, state  = sampler.run_mcmc(pos, burn_in_1_step)
-
-        print("Running second burn-in...")
-        pos = [pos[np.argmax(prob)] + 1e-1*np.random.randn(ndim) for i in range(nwalkers)] 
-        pos, prob, state  = sampler.run_mcmc(pos, burn_in_2_step)
-
-        print("Running production...")
-        pos = [pos[np.argmax(prob)] + 1e-4*np.random.randn(ndim) for i in range(nwalkers)] 
-        sampler.run_mcmc(pos, production_step)
-
-
-        #==============================================================================
-        # Trace and corner plots 
-        #==============================================================================
-
-        fig, axes = plt.subplots(ndim, figsize=(10, 7), sharex=True)
-        labels_log=[r"$\log\ m$", r"$b$"]
-        for i in range(ndim):
-            ax = axes[i]
-            ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
-            ax.set_xlim(0, sampler.chain.shape[1])
-            ax.set_ylabel(labels_log[i])
-            ax.yaxis.set_label_coords(-0.1, 0.5)
-
-        axes[-1].set_xlabel("Step number");
-        plt.savefig(new_dir + '3-Trace1' + suffix + '.png')
-
-
-        import copy
-        log_samples         = sampler.chain[:, 3000:, :].reshape((-1, ndim))
-        real_samples        = copy.copy(log_samples)
-        real_samples[:,0]   = np.exp(real_samples[:,0])
-
-        import corner
-        fig = corner.corner(real_samples, labels=[r"$m$", r"$b$"], quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
-        plt.savefig(new_dir + '3-MCMC1' + suffix + '.png')
-
-        #==============================================================================
-        # FT correction Plots
-        #==============================================================================    
-        m, b = map(lambda v: np.array(v), zip(*np.percentile(real_samples, [50, 16, 84, 2.5, 97.5], axis=0)))
-
-        fig = plt.figure()
-        Jitter_pos = (proto_jitter + b[0]) * m[0]
-        frame1  = fig.add_axes((.1,.3,.8,.6))
-        frame1.axhline(color="gray", ls='--')
-        plt.errorbar(x/100, X, yerr=yerr, fmt="ok", capsize=0, label='Simulated RV', ecolor='blue', mfc='blue', mec='blue', alpha=0.5)
-        plt.plot(x/100, Jitter_pos, '.', label='Jitter model', color='darkorange')
-        plt.xlim(0, 4)
-        plt.title('Jitter correction')
-        plt.ylabel("RV [m/s]")
-        plt.legend()
-        frame1.set_xticklabels([])
-
-        frame2  = fig.add_axes((.1,.1,.8,.2))   
-        frame2.axhline(color="gray", ls='--')
-        res     = X - Jitter_pos
-        rms_new = np.std(res)
-
-        if (rms_new < rms):
-            rms = rms_new
-            amplitude1[n]  = 0
-            period1[n]     = 0
-
-        plt.errorbar(x/100, res, yerr=yerr, fmt=".k", capsize=0, alpha=0.5, label=r'rms$=%.2f$ m/s' %rms_new)
-        plt.xlim(0,4)
-        plt.xlabel(r"$P_{rot}$")
-        plt.ylabel("Residual [m/s]")
-        plt.legend()
-        plt.savefig(new_dir + '5-Fit1' + suffix + '.png')
-        plt.close('all')
-
+    
 
 
     #==============================================================================
