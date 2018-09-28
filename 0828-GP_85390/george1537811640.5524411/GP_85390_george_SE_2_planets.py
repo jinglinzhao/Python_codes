@@ -19,85 +19,6 @@ x       = all_rvs[:,0]
 y       = all_rvs[:,1]
 yerr 	= all_rvs[:,2]
 
-jitter_raw 	= np.loadtxt('./data/jitter_raw.txt')
-fwhm 			= np.loadtxt('./data/hd85390_fwhm.dat')
-from functions import gaussian_smoothing
-t_resample = np.linspace(min(t), max(t), 1000)
-jitter_smooth 	= gaussian_smoothing(t[:96], jitter_raw, t[:96], 200., np.ones(96))
-fwhm_smooth = gaussian_smoothing(fwhm[:,0], fwhm[:,1], t[:96], 200., np.ones(114))
-
-plt.figure()
-# plt.plot(jitter_smooth, fwhm[:,1])
-plt.plot(fwhm[:,0], fwhm[:,1], '.', label='FWHM')
-plt.plot(t[:96], fwhm_smooth, label='smoothed FWHM')
-plt.xlabel("BJD - 2400000")
-plt.ylabel('FWHM [km/s]')
-plt.legend()
-# plt.savefig('FWHM.png')
-plt.show()
-
-plt.figure()
-plt.plot(fwhm_smooth[0:96], jitter_smooth, '.')
-plt.show()
-
-plt.figure()
-plt.plot(fwhm[0:96, 1], jitter_smooth, '.')
-plt.show()
-
-
-plt.figure()
-plt.plot(x[:96], jitter_smooth, '.')
-plt.show()
-
-
-
-from astropy.stats import LombScargle
-min_f   = 1/15000
-max_f   = 1
-spp     = 10
-
-frequency0, power0 = LombScargle(x, y, yerr).autopower(minimum_frequency=min_f,
-                                                        maximum_frequency=max_f,
-                                                        samples_per_peak=spp)
-
-frequency2, power2 = LombScargle(fwhm[:,0], fwhm[:,1], np.ones(114)).autopower(minimum_frequency=min_f,
-                                                        maximum_frequency=max_f,
-                                                        samples_per_peak=spp)
-
-frequency1, power1 = LombScargle(x[:96], jitter_raw, yerr[:96]).autopower(minimum_frequency=min_f,
-                                                            maximum_frequency=max_f,
-                                                            samples_per_peak=spp)
-
-plt.figure()
-ax = plt.subplot(111)
-ax.set_xscale('log')
-ax.axhline(y=0, color='k')
-ax.axvline(x=394, color='k')
-ax.axvline(x=843, color='k')
-ax.axvline(x=3442, color='k')
-plt.plot(1/frequency0, power0, '-', label='HARPS', linewidth=2.0)
-plt.plot(1/frequency1, power1, '--', label='Jitter jzhao')
-plt.plot(1/frequency2, power2, '-.', label='FWHM')
-plt.title('Lomb-Scargle Periodogram')
-plt.xlabel("Period [d]")
-plt.ylabel("Power")
-plt.legend()
-plt.savefig('HD85390-0-Periodogram.png')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import time
 import os
 import shutil
@@ -108,7 +29,7 @@ shutil.copy('GP_85390_george_SE_2_planets.py', dir_name+'/GP_85390_george_SE_2_p
 os.chdir(dir_name)
 
 plt.figure()
-# plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
+plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
 plt.errorbar(x, y, yerr=all_rvs[:,2], fmt=".b", capsize=0)
 plt.ylabel("RV [m/s]")
 plt.xlabel("Shifted JD [d]")
@@ -139,7 +60,7 @@ class Model(Model):
         rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
         offset      = np.zeros(len(t))
-        idx         = t < 57161
+        idx         = t < 57300
         offset[idx] = self.offset1
         offset[~idx]= self.offset2
 
@@ -151,8 +72,8 @@ class Model(Model):
 from george import kernels
 
 k1  	= kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(3200), 
-								bounds=dict(gamma=(-3,1), log_period=(0,10)))
-k2  	= kernels.ConstantKernel(log_constant=np.log(1.), bounds=dict(log_constant=(-5,5))) * kernels.ExpSquaredKernel(1.)
+								bounds=dict(gamma=(0,100), log_period=(0,10)))
+k2  	= np.std(y) * kernels.ExpSquaredKernel(100)
 kernel 	= k1 * k2
 
 truth = dict(P1=8., tau1=1., k1=np.std(y)/100, w1=0., e1=0.4, 
@@ -183,16 +104,16 @@ import time
 time_start  = time.time()
 
 print("Running first burn-in...")
-p0 = initial + 1e-2 * np.random.randn(nwalkers, ndim)
+p0 = initial + 1e-4 * np.random.randn(nwalkers, ndim)
 p0, lp, _ = sampler.run_mcmc(p0, 5000)
 
 print("Running second burn-in...")
-p0 = p0[np.argmax(lp)] + 1e-2 * np.random.randn(nwalkers, ndim)
+p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
 p0, _, _ = sampler.run_mcmc(p0, 5000)
 
-print("Running third burn-in...")
-p0 = p0[np.argmax(lp)] + 1e-2 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 3000)
+# print("Running third burn-in...")
+# p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
+# p0, _, _ = sampler.run_mcmc(p0, 3000)
 
 print("Running production...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
@@ -222,7 +143,7 @@ real_samples[idx,8] = real_samples[idx, 8] + 2*np.pi
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
 labels_log=np.hstack(([r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
             r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{1000}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
-            "offset1", "offset2"], names[-4:]))
+            "offset1", "offset2"], names[-5:]))
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -237,7 +158,7 @@ plt.savefig('HD85390-2-Trace.png')
 
 import corner
 labels=np.hstack(([r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", 
-		r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", "offset1", "offset2"], names[-4:]))
+		r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", "offset1", "offset2"], names[-5:]))
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
 plt.savefig('HD85390-3-Corner.png')
 # plt.show()

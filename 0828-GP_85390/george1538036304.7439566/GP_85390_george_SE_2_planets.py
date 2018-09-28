@@ -19,85 +19,6 @@ x       = all_rvs[:,0]
 y       = all_rvs[:,1]
 yerr 	= all_rvs[:,2]
 
-jitter_raw 	= np.loadtxt('./data/jitter_raw.txt')
-fwhm 			= np.loadtxt('./data/hd85390_fwhm.dat')
-from functions import gaussian_smoothing
-t_resample = np.linspace(min(t), max(t), 1000)
-jitter_smooth 	= gaussian_smoothing(t[:96], jitter_raw, t[:96], 200., np.ones(96))
-fwhm_smooth = gaussian_smoothing(fwhm[:,0], fwhm[:,1], t[:96], 200., np.ones(114))
-
-plt.figure()
-# plt.plot(jitter_smooth, fwhm[:,1])
-plt.plot(fwhm[:,0], fwhm[:,1], '.', label='FWHM')
-plt.plot(t[:96], fwhm_smooth, label='smoothed FWHM')
-plt.xlabel("BJD - 2400000")
-plt.ylabel('FWHM [km/s]')
-plt.legend()
-# plt.savefig('FWHM.png')
-plt.show()
-
-plt.figure()
-plt.plot(fwhm_smooth[0:96], jitter_smooth, '.')
-plt.show()
-
-plt.figure()
-plt.plot(fwhm[0:96, 1], jitter_smooth, '.')
-plt.show()
-
-
-plt.figure()
-plt.plot(x[:96], jitter_smooth, '.')
-plt.show()
-
-
-
-from astropy.stats import LombScargle
-min_f   = 1/15000
-max_f   = 1
-spp     = 10
-
-frequency0, power0 = LombScargle(x, y, yerr).autopower(minimum_frequency=min_f,
-                                                        maximum_frequency=max_f,
-                                                        samples_per_peak=spp)
-
-frequency2, power2 = LombScargle(fwhm[:,0], fwhm[:,1], np.ones(114)).autopower(minimum_frequency=min_f,
-                                                        maximum_frequency=max_f,
-                                                        samples_per_peak=spp)
-
-frequency1, power1 = LombScargle(x[:96], jitter_raw, yerr[:96]).autopower(minimum_frequency=min_f,
-                                                            maximum_frequency=max_f,
-                                                            samples_per_peak=spp)
-
-plt.figure()
-ax = plt.subplot(111)
-ax.set_xscale('log')
-ax.axhline(y=0, color='k')
-ax.axvline(x=394, color='k')
-ax.axvline(x=843, color='k')
-ax.axvline(x=3442, color='k')
-plt.plot(1/frequency0, power0, '-', label='HARPS', linewidth=2.0)
-plt.plot(1/frequency1, power1, '--', label='Jitter jzhao')
-plt.plot(1/frequency2, power2, '-.', label='FWHM')
-plt.title('Lomb-Scargle Periodogram')
-plt.xlabel("Period [d]")
-plt.ylabel("Power")
-plt.legend()
-plt.savefig('HD85390-0-Periodogram.png')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import time
 import os
 import shutil
@@ -151,7 +72,7 @@ class Model(Model):
 from george import kernels
 
 k1  	= kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(3200), 
-								bounds=dict(gamma=(-3,1), log_period=(0,10)))
+								bounds=dict(gamma=(-3,5), log_period=(0,10)))
 k2  	= kernels.ConstantKernel(log_constant=np.log(1.), bounds=dict(log_constant=(-5,5))) * kernels.ExpSquaredKernel(1.)
 kernel 	= k1 * k2
 
@@ -190,9 +111,9 @@ print("Running second burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-2 * np.random.randn(nwalkers, ndim)
 p0, _, _ = sampler.run_mcmc(p0, 5000)
 
-print("Running third burn-in...")
-p0 = p0[np.argmax(lp)] + 1e-2 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 3000)
+# print("Running third burn-in...")
+# p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
+# p0, _, _ = sampler.run_mcmc(p0, 3000)
 
 print("Running production...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)

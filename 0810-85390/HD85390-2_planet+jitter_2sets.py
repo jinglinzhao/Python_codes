@@ -89,7 +89,7 @@ class Model(Model):
         rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
         offset      = np.zeros(len(t))
-        idx         = t < 57300
+        idx         = t < 57161
         offset[idx] = self.offset1
         offset[~idx]= self.offset2
 
@@ -117,7 +117,7 @@ class Model2(Model):
         rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
 
         offset      = np.zeros(len(t))
-        idx         = t < 57300
+        idx         = t < 57161
         offset[idx] = self.offset1
         offset[~idx]= self.offset2
 
