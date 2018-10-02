@@ -1016,15 +1016,32 @@ print(sum(idx_a2*idx_p2)/N)
 # Lomb-Scargle periodogram 
 #==============================================================================
 from astropy.stats import LombScargle
-min_f   = 1/400
-max_f   = 1
+min_f   = 1/1000
+max_f   = 1/25
 spp     = 10
 
 frequency0, power0 = LombScargle(t, GG).autopower(minimum_frequency=min_f,
                                                         maximum_frequency=max_f,
                                                         samples_per_peak=spp)
 
-frequency1, power1 = LombScargle(t, RV_jitter).autopower(minimum_frequency=min_f,
+frequency1, power1 = LombScargle(t, XX-YY).autopower(minimum_frequency=min_f,
+                                                            maximum_frequency=max_f,
+                                                            samples_per_peak=spp)
+
+frequency_2, power_2 = LombScargle(t, ZZ-XX).autopower(minimum_frequency=min_f,
+                                                            maximum_frequency=max_f,
+                                                            samples_per_peak=spp)
+
+
+frequency0, power0 = LombScargle(x, X).autopower(minimum_frequency=min_f,
+                                                        maximum_frequency=max_f,
+                                                        samples_per_peak=spp)
+
+frequency1, power1 = LombScargle(x, ZX).autopower(minimum_frequency=min_f,
+                                                            maximum_frequency=max_f,
+                                                            samples_per_peak=spp)
+
+frequency_2, power_2 = LombScargle(x, XY).autopower(minimum_frequency=min_f,
                                                             maximum_frequency=max_f,
                                                             samples_per_peak=spp)
 
@@ -1033,19 +1050,24 @@ frequency_w, power_w = LombScargle(x, yerr).autopower(minimum_frequency=min_f,
                                                             samples_per_peak=spp)
 
 
-plt.figure()
 ax = plt.subplot(111)
 ax.axhline(y=0, color='k')
-plt.plot(1/frequency0, power0, 'b-', label='Data', linewidth=2.0)
-plt.plot(1/frequency1, power1, 'r--', label='Jitter')
-plt.plot(1/frequency_w, power_w, 'g--', label='Jitter')
+plt.plot(frequency0/0.01, power0, 'b-', label=r'$RV_{Gaussian}$', linewidth=1.0)
+plt.plot(frequency1/0.01, power1, 'r-.', label=r'$RV_{FT,H} - RV_{Gaussian}$', alpha=0.7)
+plt.plot(frequency_2/0.01, power_2, 'r--', label=r'$RV_{Gaussian} - RV_{FT,L}$', alpha=0.7)
+# plt.plot(frequency_w/0.01, power_w, 'g--', label=r'window', alpha=0.7)
 plt.title('Lomb-Scargle Periodogram')
-plt.xlabel("Period [d]")
+plt.xlabel(r'$\nu_{orb}$ / $\nu_{rot}$')
 plt.ylabel("Power")
-plt.ylim(0, max(power0)*1.5)   
-plt.legend()
+ax.axvline(x=0.7, color='b', linewidth=2.0, alpha=0.5)
+ax.axvline(x=1, color='r', linewidth=2.0, alpha=0.5)
+ax.axvline(x=2, color='r', linewidth=2.0, alpha=0.5)
+ax.axvline(x=3, color='r', linewidth=2.0, alpha=0.5)
+plt.ylim(0, max(power0)*1.1)   
+plt.xlim(0, 4)   
+plt.legend()    
+plt.savefig(new_dir + '0-Periodogram_1.png')
 plt.show()
-plt.savefig('HD10700-0-Periodogram.png')
 
 
 fig = plt.figure()
