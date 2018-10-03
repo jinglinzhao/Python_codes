@@ -285,12 +285,12 @@ print("Running second burn-in...")
 pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
 pos, prob, state  = sampler.run_mcmc(pos, 1000)
 
-print("Running third burn-in...")
-pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
-pos, prob, state  = sampler.run_mcmc(pos, 1000)
+# print("Running third burn-in...")
+# pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
+# pos, prob, state  = sampler.run_mcmc(pos, 2000)
 
 print("Running production...")
-sampler.run_mcmc(pos, 1000);
+sampler.run_mcmc(pos, 2000);
 
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))
@@ -336,7 +336,7 @@ plt.show()
 #==============================================================================
 
 a0, a1, a2, a3, a4, a5, a6, a7 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
-aa = np.zeros((8,3))
+aa = np.zeros((7,3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
 aa[2,:] = [a2[i] for i in range(3)]
@@ -362,11 +362,11 @@ plt.errorbar(t, xx, yerr=yerr, fmt=".k", capsize=0, label='HARPS RV')
 plt.legend()
 plt.ylabel("Radial velocity [m/s]")
 # Jitter#
-Jitter      = Model(P1=np.log(P1)/10, tau1=tau1/1000, k1=0, w1=w1, e1=e1, offset1=0, offset2=0, alpha=np.log(alpha))
+Jitter      = Model(P1=np.log(P1)/10, tau1=tau1/1000, k1=0, w1=w1, e1=e1, offset1=0, offset2=0, alpha=np.exp(alpha))
 y_jitter    = Jitter.get_value(t)
 plt.plot(t, y_jitter, 'ro', alpha=.5, label='smoothed jitter')
 
-Fit         = Model(P1=np.log(P1)/10, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, offset1=offset1, offset2=offset1, alpha=np.log(alpha))
+Fit         = Model(P1=np.log(P1)/10, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, offset1=offset1, offset2=offset1, alpha=np.exp(alpha))
 y_fit       = Fit.get_value(t)
 plt.plot(t, y_fit, 'bo', alpha=.5, label='Planet 1 + smoothed jitter')
 # plt.plot(x[x<57300], alpha*jitter_smooth, 'ro', alpha=.5, label='smoothed jitter')

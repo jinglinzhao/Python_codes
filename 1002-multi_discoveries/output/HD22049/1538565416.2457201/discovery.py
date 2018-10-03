@@ -37,8 +37,8 @@ plt.errorbar(t, XY, yerr=yerr, fmt=".r", capsize=0, label='$RV_{HARPS} - RV_{FT,
 plt.ylabel("RV [m/s]")
 plt.xlabel("JD - 2,400,000")
 plt.legend()
-plt.savefig('1-RV1.png')
-# plt.show()
+# plt.savefig('1-RV1.png')
+plt.show()
 
 plt.figure()
 plt.errorbar(t, XX, yerr=yerr, fmt=".k", capsize=0, label='$RV_{HARPS}$')
@@ -73,7 +73,7 @@ plt.savefig('2-correlation_XYZ.png')
 #==============================================================================
 # Smoothing
 #==============================================================================
-sl      = 0.5         # smoothing length
+sl      = 1         # smoothing length
 xx 	 	= gaussian_smoothing(t, XX, t, sl)
 xy      = gaussian_smoothing(t, XY, t, sl)
 zx      = gaussian_smoothing(t, ZX, t, sl)
@@ -191,7 +191,7 @@ os.makedirs(str(time0))
 shutil.copy('../../code/discovery.py', str(time0)+'/discovery.py')  
 os.chdir(str(time0))
 
-if 0:
+if 1:
     idx = (t < 57161)
 
     t = t[idx]
@@ -204,7 +204,7 @@ if 0:
 # Model
 #==============================================================================
 class Model(Model):
-    parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'offset1', 'offset2', 'alpha')
+    parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'offset1', 'alpha')
 
     def get_value(self, t):
 
@@ -217,30 +217,20 @@ class Model(Model):
         # The last part is not "corrected" with jitter
         jitter  = np.exp(self.alpha) * xy
 
-        offset      = np.zeros(len(t))
-        idx         = t < 57161
-        offset[idx] = self.offset1
-        offset[~idx]= self.offset2
-
-        return rv1 + offset + jitter
+        return rv1 + self.offset1 + jitter
 
 class Model2(Model):
-    parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'offset1', 'offset2')
+    parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'offset1')
 
     def get_value(self, t):
 
         # Planet 1
-        M_anom1 = 2*np.pi/np.exp(10*self.P1) * (t - 1000*self.tau1)
+        M_anom1 = 2*np.pi/(1000*self.P1) * (t - 1000*self.tau1)
         e_anom1 = solve_kep_eqn(M_anom1, self.e1)
         f1      = 2*np.arctan( np.sqrt((1+self.e1)/(1-self.e1))*np.tan(e_anom1*.5) )
         rv1     = 100*self.k1*(np.cos(f1 + self.w1) + self.e1*np.cos(self.w1))
 
-        offset      = np.zeros(len(t))
-        idx         = t < 57161
-        offset[idx] = self.offset1
-        offset[~idx]= self.offset2
-
-        return rv1 + offset
+        return rv1 + self.offset1
 
 #==============================================================================
 # MCMC
@@ -249,15 +239,15 @@ class Model2(Model):
 # As prior, we assume an 'uniform' prior (i.e. constant prob. density)
 
 def lnprior(theta):
-    P1, tau1, k1, w1, e1, offset1, offset2, alpha = theta
-    if (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and (alpha > 0):
+    P1, tau1, k1, w1, e1, offset1, alpha = theta
+    if (-2*np.pi < w1 < 2*np.pi) and (0 < e1 < 0.9) and (alpha > 1):
         return 0.0
     return -np.inf
 
 # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
 def lnlike(theta, x, y, yerr):
-    P1, tau1, k1, w1, e1, offset1, offset2, alpha = theta
-    fit_curve   = Model(P1=P1, tau1=tau1, k1=k1, w1=w1, e1=e1, offset1=offset1, offset2=offset2, alpha=alpha)
+    P1, tau1, k1, w1, e1, offset1, alpha = theta
+    fit_curve   = Model(P1=P1, tau1=tau1, k1=k1, w1=w1, e1=e1, offset1=offset1, alpha=alpha)
     y_fit       = fit_curve.get_value(x)
     return -0.5*(np.sum( ((y-y_fit)/yerr)**2))
 
@@ -270,7 +260,7 @@ def lnprob(theta, x, y, yerr):
 
 
 import emcee
-ndim = 8
+ndim = 7
 nwalkers = 32
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(t, xx, yerr), threads=14)
 
@@ -278,19 +268,19 @@ import time
 time_start  = time.time()
 
 print("Running first burn-in...")
-pos = [[0.5, 1., (max(XX)-min(XX))/100, 0, 0.4, 0, 0, 1.5] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
+pos = [[0.5, 1., (max(XX)-min(XX))/100, 0, 0.4, 0, 1.5] + 1e-2*np.random.randn(ndim) for i in range(nwalkers)] 
 pos, prob, state  = sampler.run_mcmc(pos, 2000)
 
 print("Running second burn-in...")
 pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
 pos, prob, state  = sampler.run_mcmc(pos, 1000)
 
-print("Running third burn-in...")
-pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
-pos, prob, state  = sampler.run_mcmc(pos, 1000)
+# print("Running third burn-in...")
+# pos = pos[np.argmax(prob)] + 1e-4 * np.random.randn(nwalkers, ndim)
+# pos, prob, state  = sampler.run_mcmc(pos, 2000)
 
 print("Running production...")
-sampler.run_mcmc(pos, 1000);
+sampler.run_mcmc(pos, 2000);
 
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))
@@ -301,18 +291,18 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, -2000:, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, -500:, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
 real_samples[:,0] = np.exp(10*real_samples[:,0])
 real_samples[:,1] = 1000*real_samples[:,1]
 real_samples[:,2] = 100*real_samples[:,2]
 idx = real_samples[:,3] < 0
 real_samples[idx,3] = real_samples[idx, 3] + 2*np.pi
-real_samples[:,7] = np.exp(real_samples[:,7])
+real_samples[:,6] = np.exp(real_samples[:,6])
 
 
 fig, axes = plt.subplots(ndim, figsize=(20, 14), sharex=True)
-labels_log=[r"$\frac{\log P_{1}}{10}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", "offset1", "offset2", r"$\log \alpha$"]
+labels_log=[r"$\frac{\log P_{1}}{10}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", "offset1", r"$\log \alpha$"]
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
@@ -326,7 +316,7 @@ plt.show()
 
 
 import corner
-labels=[r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", "offset1", "offset2", r"$\alpha$"]
+labels=[r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", "offset", r"$\alpha$"]
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
 plt.savefig('3-Corner.png')
 plt.show()
@@ -335,8 +325,8 @@ plt.show()
 # Output
 #==============================================================================
 
-a0, a1, a2, a3, a4, a5, a6, a7 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
-aa = np.zeros((8,3))
+a0, a1, a2, a3, a4, a5, a6 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
+aa = np.zeros((7,3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
 aa[2,:] = [a2[i] for i in range(3)]
@@ -344,29 +334,28 @@ aa[3,:] = [a3[i] for i in range(3)]
 aa[4,:] = [a4[i] for i in range(3)]
 aa[5,:] = [a5[i] for i in range(3)]
 aa[6,:] = [a6[i] for i in range(3)]
-aa[7,:] = [a7[i] for i in range(3)]
 np.savetxt('parameter_fit.txt', aa, fmt='%.6f')
 
 
-P1, tau1, k1, w1, e1, offset1, offset2, alpha = aa[:,0]
+P1, tau1, k1, w1, e1, offset1, alpha = aa[:,0]
 fig         = plt.figure(figsize=(10, 7))
 frame1      = fig.add_axes((.15,.3,.8,.6))
 frame1.axhline(y=0, color='k', ls='--', alpha=.3)
 t_sample    = np.linspace(min(t), max(t), num=10001, endpoint=True)
 
 # Planet 1 #
-Planet1     = Model2(P1=np.log(P1)/10, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, offset1=offset1, offset2=offset2)
+Planet1     = Model2(P1=P1/1000, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, offset1=offset1)
 y1          = Planet1.get_value(t_sample)
 plt.plot(t_sample, y1, 'b-.', alpha=.3, label='Planet1')
 plt.errorbar(t, xx, yerr=yerr, fmt=".k", capsize=0, label='HARPS RV')
 plt.legend()
 plt.ylabel("Radial velocity [m/s]")
 # Jitter#
-Jitter      = Model(P1=np.log(P1)/10, tau1=tau1/1000, k1=0, w1=w1, e1=e1, offset1=0, offset2=0, alpha=np.log(alpha))
+Jitter      = Model(P1=P1/1000, tau1=tau1/1000, k1=0, w1=w1, e1=e1, offset1=0, alpha=alpha)
 y_jitter    = Jitter.get_value(t)
 plt.plot(t, y_jitter, 'ro', alpha=.5, label='smoothed jitter')
 
-Fit         = Model(P1=np.log(P1)/10, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, offset1=offset1, offset2=offset1, alpha=np.log(alpha))
+Fit         = Model(P1=P1/1000, tau1=tau1/1000, k1=k1/100, w1=w1, e1=e1, offset1=offset1, alpha=alpha)
 y_fit       = Fit.get_value(t)
 plt.plot(t, y_fit, 'bo', alpha=.5, label='Planet 1 + smoothed jitter')
 # plt.plot(x[x<57300], alpha*jitter_smooth, 'ro', alpha=.5, label='smoothed jitter')
