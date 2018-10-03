@@ -1,7 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-# from rv import solve_kep_eqn
-# from celerite.modeling import Model
 from functions import gaussian_smoothing
 
 #==============================================================================
@@ -13,8 +11,6 @@ y 		= np.loadtxt('RV_HARPS.dat')
 y 		= (y - np.mean(y)) * 1000
 yerr 	= np.loadtxt('RV_noise.dat') #m/s
 
-jitter_raw  = np.loadtxt('jitter_raw.txt')
-jitter_raw	= jitter_raw[idx]
 
 # jitter_smooth = np.loadtxt('jitter_smooth.txt')
 
@@ -30,7 +26,7 @@ plt.figure()
 plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
 plt.errorbar(x, y-YY, yerr=yerr, fmt=".r", capsize=0)
 plt.ylabel("RV [m/s]")
-plt.xlabel("Time [d]")
+plt.xlabel("JD - 2,400,000")
 # plt.savefig('HD10700-1-RV.png')
 plt.show()
 
@@ -53,7 +49,7 @@ plt.figure()
 plt.plot(x, XX, '.k')
 plt.plot(x, XY, '.r')
 plt.ylabel("RV [m/s]")
-plt.xlabel("Time [d]")
+plt.xlabel("JD - 2,400,000")
 # plt.savefig('HD10700-1-RV.png')
 plt.show()
 
