@@ -31,9 +31,9 @@ y = XX-YY
 from george import kernels
 
 k1 = 1**2 * kernels.ExpSquaredKernel(metric=10**2)
-k2 = 1**2 * kernels.ExpSquaredKernel(50**2) * kernels.ExpSine2Kernel(gamma=1, log_period=np.log(40))
+k2 = 1**2 * kernels.ExpSquaredKernel(80**2) * kernels.ExpSine2Kernel(gamma=1, log_period=np.log(36.2))
 k3 = 0.66**2 * kernels.RationalQuadraticKernel(log_alpha=np.log(0.78), metric=1.2**2)
-k4 = 0.18**2 * kernels.ExpSquaredKernel(1.6**2)
+k4 = 1**2 * kernels.ExpSquaredKernel(40**2)
 # kernel = k1 + k2 + k3 + k4
 kernel = k2
 
@@ -169,28 +169,31 @@ np.savetxt('ksiboo_hat_p.txt', aa, fmt='%.6f')
 gp.set_parameter_vector(aa[:,0])
 gp.set_parameter_vector(results.x)
 # Make the maximum likelihood prediction
-x = np.linspace(min(t), max(t), 1000)
+x = np.linspace(min(t-1), max(t+1), 1000)
 mu, var = gp.predict(y, x, return_var=True)
 std = np.sqrt(var)
 gp_predict = np.transpose(np.vstack((x,mu,std)))
 # np.savetxt('gp_predict_hat(p).txt', gp_predict, fmt='%.8f')
-np.savetxt('gp_predict.txt', gp_predict, fmt='%.8f')
+# np.savetxt('gp_predict.txt', gp_predict, fmt='%.8f')
 
 
 # x: oversampled time (column 1)
 # mu: Gaussian processes prediction of the most likely value (column 2)
 # std: standard deivation of walkers in all runs in MCMC (column 3)
 color = "#ff7f0e"
-plt.errorbar(t, yy, yerr=yerr, fmt=".k", alpha=0.1, capsize=0)
+fig = plt.figure(figsize=(18,6))
+plt.errorbar(t, XY[idx], yerr=yerr, fmt=".k", alpha=0.1, capsize=0)
+# plt.errorbar(MJD[~idx], XY[~idx], yerr=YERR[~idx], fmt=".r", alpha=0.1, capsize=0)
 plt.plot(x, mu, color=color)
 plt.fill_between(x, mu+std, mu-std, color=color, alpha=0.3, edgecolor="none")
-plt.ylabel(r"$y$")
-plt.xlabel(r"$t$")
+plt.ylabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
+plt.xlabel("JD - 2,400,000")
 # plt.gca().yaxis.set_major_locator(plt.MaxNLocator(5))
 # plt.title("hat(p) - maximum likelihood prediction (MCMC)");
 # plt.savefig('../output/'+star+'.png') 
 plt.savefig(star+'.png') 
-plt.title("Maximum likelihood prediction (MCMC)");
+plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
+# plt.title("Maximum likelihood prediction");
 # plt.savefig('ksiboo-prediction-4.png') 
 # plt.title("sqrt(p) - maximum likelihood prediction");
 # plt.savefig('ksiboo-prediction-4-MCMC.png') 
