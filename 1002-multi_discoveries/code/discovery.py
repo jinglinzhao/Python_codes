@@ -14,22 +14,25 @@ print('*'*len(star))
 
 plt.rcParams.update({'font.size': 14})
 
-if 0:
-	DIR     = '/Volumes/DataSSD/OneDrive - UNSW/Hermite_Decomposition/ESO_HARPS/' + star
-	t 		= np.loadtxt(DIR + '/MJD.dat')
-	XX 		= np.loadtxt(DIR + '/RV_HARPS.dat')
-	XX 		= (XX - np.mean(XX)) * 1000
-	yerr 	= np.loadtxt(DIR + '/RV_noise.dat') #m/s
+DIR     = '/Volumes/DataSSD/OneDrive - UNSW/Hermite_Decomposition/ESO_HARPS/' + star
+t 		= np.loadtxt(DIR + '/MJD.dat')
+# MJD     = np.loadtxt(DIR + '/MJD.dat')
+XX 		= np.loadtxt(DIR + '/RV_HARPS.dat')
+XX 		= (XX - np.mean(XX)) * 1000
+yerr 	= np.loadtxt(DIR + '/RV_noise.dat') #m/s
+# YERR    = np.loadtxt(DIR + '/RV_noise.dat') #m/s
+FWHM    = np.loadtxt(DIR + '/FWHM.dat')
 
-t  	= np.loadtxt('../data/'+star+'/MJD.dat')
-XX  = np.loadtxt('../data/'+star+'/RV_HARPS.dat')
-XX  = (XX - np.mean(XX)) * 1000
-yerr= np.loadtxt('../data/'+star+'/RV_noise.dat')
+
+# t  	= np.loadtxt('../data/'+star+'/MJD.dat')
+# XX  = np.loadtxt('../data/'+star+'/RV_HARPS.dat')
+# XX  = (XX - np.mean(XX)) * 1000
+# yerr= np.loadtxt('../data/'+star+'/RV_noise.dat')
+# FWHM  = np.loadtxt('../data/'+star+'/FWHM.dat')
 
 YY  = np.loadtxt('../data/'+star+'/YY.txt')
 ZZ  = np.loadtxt('../data/'+star+'/ZZ.txt')
 
-FWHM  = np.loadtxt('../data/'+star+'/FWHM.dat')
 
 XY 	= XX - YY
 ZX 	= ZZ - XX
@@ -44,8 +47,8 @@ os.chdir('../output/'+star)
 
 plt.figure()
 plt.errorbar(t, XX, yerr=yerr, fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
-# plt.errorbar(t, XY, yerr=yerr, fmt=".r", capsize=0, alpha=0.2, label='$RV_{HARPS} - RV_{FT,L}$')
-# plt.errorbar(t, ZX, yerr=yerr, fmt=".b", capsize=0, alpha=0.2, label='$RV_{FT,H} - RV_{HARPS}$')
+plt.errorbar(t, XY, yerr=yerr, fmt=".r", capsize=0, alpha=0.2, label='$RV_{HARPS} - RV_{FT,L}$')
+plt.errorbar(t, ZX, yerr=yerr, fmt=".b", capsize=0, alpha=0.2, label='$RV_{FT,H} - RV_{HARPS}$')
 plt.ylabel("RV [m/s]")
 plt.xlabel("JD - 2,400,000")
 plt.legend()
@@ -73,10 +76,10 @@ plt.show()
 
 
 plt.figure()
-# plt.errorbar(t[idx], XX[idx], yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
-# plt.errorbar(t[~idx], XX[~idx], yerr=yerr[~idx], fmt="*k", capsize=0, alpha=0.2, label='$RV_{HARPS}$ outlier')
-plt.errorbar(t[idx], XY[idx], yerr=yerr[idx], fmt=".r", capsize=0, alpha=0.2, label='$RV_{HARPS} - RV_{FT,L}$')
-plt.errorbar(t[~idx], XY[~idx], yerr=yerr[~idx], fmt=".b", capsize=0, alpha=0.2, label='outlier?')
+plt.errorbar(t[idx], XX[idx], yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
+plt.errorbar(t[~idx], XX[~idx], yerr=yerr[~idx], fmt="*r", capsize=0, alpha=0.2, label='$RV_{HARPS}$ outlier')
+# plt.errorbar(t[idx], XY[idx], yerr=yerr[idx], fmt=".r", capsize=0, alpha=0.2, label='$RV_{HARPS} - RV_{FT,L}$')
+# plt.errorbar(t[~idx], XY[~idx], yerr=yerr[~idx], fmt=".b", capsize=0, alpha=0.2, label='outlier?')
 plt.ylabel("RV [m/s]")
 plt.xlabel("JD - 2,400,000")
 plt.legend()
@@ -147,7 +150,7 @@ plt.plot(XX[idx], XY[idx], '.k', markersize=3, alpha=0.3)
 plt.plot(XX[~idx], XY[~idx], '*r', markersize=3, alpha=0.3)
 plt.xlabel('$RV_{HARPS}$ [m/s]')
 plt.ylabel('$RV_{HARPS} - RV_{FT,L}$ [m/s]')
-plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12 [PART]')
+plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
 
 
 plt.subplot(154)
@@ -175,14 +178,14 @@ yerr = yerr[idx]
 # Smoothing
 #==============================================================================
 sl      = 0.5         # smoothing length
-xx 	 	= gaussian_smoothing(t, XX, t, sl)
-xy      = gaussian_smoothing(t, XY, t, sl)
-zx      = gaussian_smoothing(t, ZX, t, sl)
+# xx 	 	= gaussian_smoothing(t, XX, t, sl)
+xy      = gaussian_smoothing(t, y, t, sl, 1/yerr**2)
+# zx      = gaussian_smoothing(t, ZX, t, sl)
 np.savetxt('../../data/'+star+'/xy.txt', xy)
 
 
 plt.figure()
-plt.errorbar(t, xx, yerr=yerr, fmt=".k", capsize=0, label='$RV_{HARPS}$')
+# plt.errorbar(t, xx, yerr=yerr, fmt=".k", capsize=0, label='$RV_{HARPS}$')
 plt.errorbar(t, xy, yerr=yerr, fmt=".r", capsize=0, label='$RV_{HARPS} - RV_{FT,L}$')
 plt.ylabel("RV [m/s]")
 plt.xlabel("JD - 2,400,000")
