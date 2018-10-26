@@ -121,7 +121,7 @@ if star == 'HD117618':
 if star == 'HD7449':
 
     class Model(Model):
-        parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'w2', 'e2', 'd_harps1', 'd_harps2')
+        parameter_names = ('P1', 'tau1', 'k1', 'w1', 'e1', 'P2', 'tau2', 'k2', 'd_harps1', 'd_harps2')
 
         def get_value(self, t):
             # Planet 1
@@ -130,10 +130,7 @@ if star == 'HD7449':
             f1      = 2*np.arctan( np.sqrt((1+self.e1)/(1-self.e1))*np.tan(e_anom1*.5) )
             rv1     = 100*self.k1*(np.cos(f1 + self.w1) + self.e1*np.cos(self.w1))
             # Planet 2
-            M_anom2 = 2*np.pi/(100*self.P2) * (t - 1000*self.tau2)
-            e_anom2 = solve_kep_eqn(M_anom2, self.e2)
-            f2      = 2*np.arctan( np.sqrt((1+self.e2)/(1-self.e2))*np.tan(e_anom2*.5) )
-            rv2     = 100*self.k2*(np.cos(f2 + self.w2) + self.e2*np.cos(self.w2))
+            rv2     = 100*self.k2*np.sin((t - 1000*self.tau2)/(100*self.P2))
 
             offset      = np.zeros(len(t))
             idx         = t < 57161
@@ -149,7 +146,7 @@ from george import kernels
 
 if star == 'HD117618':
     k1      = kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(100), 
-                                    bounds=dict(gamma=(-1,100), log_period=(0,10)))
+                                    bounds=dict(gamma=(-3,3), log_period=(0,10)))
     k2      = np.std(y) * kernels.ExpSquaredKernel(1.)
     k3 = 0.66**2 * kernels.RationalQuadraticKernel(log_alpha=np.log(0.78), metric=1.2**2)
     kernel  = k1 * k2 + k3
@@ -163,14 +160,14 @@ if star == 'HD117618':
 if star == 'HD7449':
     k1      = kernels.ExpSine2Kernel(gamma = 1, log_period = np.log(13.3), 
                                     bounds=dict(gamma=(-3,1), log_period=(np.log(13.3-2.56),np.log(13.3+2.56))))
-    k2      = kernels.ConstantKernel(log_constant=np.log(1.0), bounds=dict(log_constant=(-3,4))) * kernels.ExpSquaredKernel(1.)
+    k2      = kernels.ConstantKernel(log_constant=np.log(1.0), bounds=dict(log_constant=(-3,4))) * kernels.ExpSquaredKernel(10**2.)
     kernel  = k1 * k2    
-    truth   = dict(P1=12.50, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.8, 
-                   P2=160., tau2=0.1, k2=np.std(y)/100, w2=0., e2=0.2, 
+    truth   = dict(P1=12.50, tau1=0.1, k1=np.std(y)/100, w1=0., e1=0.9, 
+                   P2=160., tau2=0.1, k2=np.std(y)/100, 
                    d_harps1=0., d_harps2=0.)
     kwargs  = dict(**truth)
-    kwargs["bounds"] = dict(P1=(12.0, 13.0), k1=(0,1.), w1=(-2*np.pi,2*np.pi), e1=(0.7,0.95), 
-                            P2=(35, 200), k2=(0,2.), w2=(-2*np.pi,2*np.pi), e2=(0.,0.8))
+    kwargs["bounds"] = dict(P1=(12.0, 13.0), k1=(0,1.), w1=(-2*np.pi,2*np.pi), e1=(0.7,0.99), 
+                            P2=(120, 220), k2=(0,2.))
 
 mean_model = Model(**kwargs)
 gp = george.GP(kernel, mean=mean_model, fit_mean=True, white_noise=np.log(0.5**2), fit_white_noise=True)
@@ -197,19 +194,19 @@ time_start  = time.time()
 
 print("Running first burn-in...")
 p0 = initial + 1e-2 * np.random.randn(nwalkers, ndim)
-p0, lp, _ = sampler.run_mcmc(p0, 4000)
+p0, lp, _ = sampler.run_mcmc(p0, 3000)
 
 print("Running second burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-2 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 4000)
+p0, _, _ = sampler.run_mcmc(p0, 3000)
 
-print("Running third burn-in...")
-p0 = p0[np.argmax(lp)] + 1e-2 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 4000)
+# print("Running third burn-in...")
+# p0 = p0[np.argmax(lp)] + 1e-2 * np.random.randn(nwalkers, ndim)
+# p0, _, _ = sampler.run_mcmc(p0, 4000)
 
 print("Running production...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
-sampler.run_mcmc(p0, 5000);    
+sampler.run_mcmc(p0, 4000);    
 
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))
@@ -220,7 +217,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-raw_samples         = sampler.chain[:, -5000:, :].reshape((-1, ndim))
+raw_samples         = sampler.chain[:, -4000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(raw_samples)
 real_samples[:,1]   = 10*real_samples[:,1]
 real_samples[:,6]   = 10*real_samples[:,6]
@@ -239,7 +236,7 @@ if star == 'HD117618':
                               "d_aat", "d_harps1", "d_harps2"], names[-4:]))
 if star == 'HD7449':
     labels      = np.hstack(([r"$\frac{P_{1}}{100}$", r"$\frac{T_{1}}{1000}$", r"$\frac{K_{1}}{100}$", r"$\omega1$", r"$e1$", 
-                              r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{1000}$", r"$\frac{K_{2}}{100}$", r"$\omega2$", r"$e2$", 
+                              r"$\frac{P_{2}}{100}$", r"$\frac{T_{2}}{1000}$", r"$\frac{K_{2}}{100}$", 
                               "d_harps1", "d_harps2"], names[-5:]))
 for i in range(ndim):
     ax = axes[i]
@@ -250,7 +247,7 @@ for i in range(ndim):
 
 axes[-1].set_xlabel("step number");
 plt.savefig(star+'-2-Trace.png')
-# plt.show()
+plt.show()
 
 import corner
 if star == 'HD117618':
@@ -259,11 +256,11 @@ if star == 'HD117618':
                         "d_aat", "d_harps1", "d_harps2"], names[-5:]))
 if star == 'HD7449':
     labels= np.hstack(([r"$P1$", r"$T_{1}$", r"$K1$", r"$\omega1$", r"$e1$", 
-                        r"$P2$", r"$T_{2}$", r"$K2$", r"$\omega2$", r"$e2$", 
+                        r"$P2$", r"$T_{2}$", r"$K2$", 
                         "d_harps1", "d_harps2"], names[-5:]))
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
 plt.savefig(star+'-3-Corner.png')
-# plt.show()
+plt.show()
 
 #==============================================================================
 # Output
@@ -279,7 +276,7 @@ if star == 'HD117618':
 if star == 'HD7449':
     # a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v1, v2, v3, v4 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
     #                                                         zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
-    a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, v1, v2, v3, v4, v5 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
+    a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, v1, v2, v3, v4, v5 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
                                                             zip(*np.percentile(raw_samples, [16, 50, 84], axis=0)))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
@@ -291,8 +288,8 @@ aa[6,:] = [a6[i] for i in range(3)]
 aa[7,:] = [a7[i] for i in range(3)]
 aa[8,:] = [a8[i] for i in range(3)]
 aa[9,:] = [a9[i] for i in range(3)]
-aa[10,:]= [a10[i] for i in range(3)]
-aa[11,:]= [a11[i] for i in range(3)]
+# aa[10,:]= [a10[i] for i in range(3)]
+# aa[11,:]= [a11[i] for i in range(3)]
 np.savetxt(star+'_fit.txt', aa, fmt='%.6f')
 
 solution[0:len(truth)]  = aa[:,0]
@@ -327,9 +324,9 @@ if star == 'HD117618':
                         P2=P2, tau2=tau2, k2=k2, w2=w2, e2=e2, 
                         d_aat=d_aat, d_harps1=d_harps1, d_harps2=d_harps2)
 if star == 'HD7449':
-    P1, tau1, k1, w1, e1, P2, tau2, k2, w2, e2, d_harps1, d_harps2 = aa[:,0]
+    P1, tau1, k1, w1, e1, P2, tau2, k2, d_harps1, d_harps2 = aa[:,0]
     fit_curve   = Model(P1=P1, tau1=tau1, k1=k1, w1=w1, e1=e1, 
-                        P2=P2, tau2=tau2, k2=k2, w2=w2, e2=e2, 
+                        P2=P2, tau2=tau2, k2=k2, 
                         d_harps1=d_harps1, d_harps2=d_harps2)
 
 fig         = plt.figure(figsize=(20, 14))
