@@ -31,7 +31,10 @@ y = XX-YY
 from george import kernels
 
 k1 = 1**2 * kernels.ExpSquaredKernel(metric=10**2)
-k2 = 1**2 * kernels.ExpSquaredKernel(80**2) * kernels.ExpSine2Kernel(gamma=1, log_period=np.log(36.2))
+k2 = 1**2 * kernels.ExpSquaredKernel(80**2) * kernels.ExpSine2Kernel(gamma=8, log_period=np.log(36.2))
+# boundary doesn't seem to take effect
+# k2 = 1**2 * kernels.ExpSquaredKernel(80**2) * kernels.ExpSine2Kernel(gamma=1, log_period=np.log(36.2),
+#                             bounds=dict(gamma=(-3,30), log_period=(np.log(36.2-5),np.log(36.2+6))))
 k3 = 0.66**2 * kernels.RationalQuadraticKernel(log_alpha=np.log(0.78), metric=1.2**2)
 k4 = 1**2 * kernels.ExpSquaredKernel(40**2)
 # kernel = k1 + k2 + k3 + k4
@@ -41,6 +44,9 @@ import george
 # gp = george.GP(kernel, mean=np.mean(y), fit_mean=True,
 #               white_noise=np.log(0.19**2), fit_white_noise=True)
 gp = george.GP(kernel, mean=np.mean(y), fit_mean=True)
+# gp.freeze_parameter('kernel:k2:log_period')
+# gp.freeze_parameter('kernel:k2:gamma')
+
 
 #==============================================================================
 # Optimization 
@@ -182,24 +188,33 @@ gp_predict = np.transpose(np.vstack((x,mu,std)))
 # std: standard deivation of walkers in all runs in MCMC (column 3)
 color = "#ff7f0e"
 fig = plt.figure(figsize=(18,6))
-plt.errorbar(t, XY[idx], yerr=yerr, fmt=".k", alpha=0.1, capsize=0)
+plt.errorbar(t, y, yerr=yerr, fmt=".k", alpha=0.1, capsize=0)
 # plt.errorbar(MJD[~idx], XY[~idx], yerr=YERR[~idx], fmt=".r", alpha=0.1, capsize=0)
 plt.plot(x, mu, color=color)
+# plt.xlim(55275, 55365)
 plt.fill_between(x, mu+std, mu-std, color=color, alpha=0.3, edgecolor="none")
 plt.ylabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
 plt.xlabel("JD - 2,400,000")
 # plt.gca().yaxis.set_major_locator(plt.MaxNLocator(5))
 # plt.title("hat(p) - maximum likelihood prediction (MCMC)");
 # plt.savefig('../output/'+star+'.png') 
-plt.savefig(star+'.png') 
-plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
+plt.title('2010-03-23..2010-06-12')
+# plt.title('2011-02-18..2011-05-15')
+# plt.title('2009-02-15..2009-05-06')
+plt.savefig(star+'.png')
 # plt.title("Maximum likelihood prediction");
 # plt.savefig('ksiboo-prediction-4.png') 
 # plt.title("sqrt(p) - maximum likelihood prediction");
 # plt.savefig('ksiboo-prediction-4-MCMC.png') 
 plt.show()
 
-
+np.savetxt('plot_t.txt', t)
+np.savetxt('plot_RV_HARPS.txt', XX[idx])
+np.savetxt('plot_y.txt', y)
+np.savetxt('plot_yerr.txt', yerr)
+np.savetxt('plot_x.txt', x)
+np.savetxt('plot_mu.txt', mu)
+np.savetxt('plot_std.txt', std)
 
 #==============================================================================
 # For use of lining up the plots only

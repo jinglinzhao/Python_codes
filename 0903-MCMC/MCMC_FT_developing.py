@@ -16,7 +16,7 @@ def gaussian(x, mu, sig):
 # Setup
 #==============================================================================
 
-real_a      = 2.0
+real_a      = 0.0
 real_k      = 0.7
 real_phi    = 1.0
 
@@ -76,7 +76,7 @@ RV_jitter   = np.hstack((RV_jitter,RV_jitter, RV_jitter, RV_jitter))
 #==============================================================================
 # Visualization
 #==============================================================================
-plt.rcParams.update({'font.size': 12})
+plt.rcParams.update({'font.size': 15})
 
 if 0: 
     # plt.plot(t, RV_jitter, '--', label='inout jitter')
@@ -171,6 +171,7 @@ for n in range(N):
     # re-sample
     x       = gran_gen(n_group, n_obs)
     # x = np.sort(random.sample(range(200), n_obs))
+    # x = np.arange(200)
     print('Observation samples:')
     print(x)    
     X   = np.array([GG[i] for i in x])
@@ -201,54 +202,54 @@ for n in range(N):
         plt.show()
 
     if 0:
-        left  = 0.05  # the left side of the subplots of the figure
-        right = 0.95    # the right side of the subplots of the figure
+        left  = 0.06  # the left side of the subplots of the figure
+        right = 0.98    # the right side of the subplots of the figure
         bottom = 0.15   # the bottom of the subplots of the figure
         top = 0.95      # the top of the subplots of the figure
-        wspace = 0.4   # the amount of width reserved for blank space between subplots
+        wspace = 0.5   # the amount of width reserved for blank space between subplots
         hspace = 0.2   # the amount of height reserved for white space between subplots
 
-        plt.rcParams.update({'font.size': 16})
+        plt.rcParams.update({'font.size': 20})
         fig, axes = plt.subplots(1, 3, figsize=(20, 5))
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
 
         plt.subplot(151)
-        plt.scatter(X, Y, color='k')
+        plt.scatter(X, Y, color='k', alpha=0.5)
         fit = np.polyfit(X, Y, 1)
-        x_sample = np.linspace(min(X)*1.2, max(X)*1.2, num=100, endpoint=True)
+        x_sample = np.linspace(min(X)*1.1, max(X)*1.1, num=100, endpoint=True)
         y_sample = fit[0]*x_sample + fit[1]        
-        # # plt.plot(x_sample, y_sample, 'g-', linewidth=5, alpha = 0.3)
-        plt.plot(x_sample, y_sample, 'g-', linewidth=15, alpha = 0.3)       
+        plt.plot(x_sample, y_sample, 'g-', linewidth=5, alpha = 0.2)
+        # plt.plot(x_sample, y_sample, 'g-', linewidth=15, alpha = 0.2)       
         plt.xlabel('$RV_{Gaussian}$ [m/s]')
         plt.ylabel('$RV_{FT,L}$ [m/s]')    
 
         plt.subplot(152)
-        plt.scatter(X, Z, color='k')
+        plt.scatter(X, Z, color='k', alpha=0.5)
         fit = np.polyfit(X, Z, 1)
         x_sample = np.linspace(min(X)*1.2, max(X)*1.2, num=100, endpoint=True)
         y_sample = fit[0]*x_sample + fit[1]        
         # # plt.plot(x_sample, y_sample, 'g-', linewidth=5, alpha = 0.3)
-        plt.plot(x_sample, y_sample, 'g-', linewidth=50, alpha = 0.3)       
+        # plt.plot(x_sample, y_sample, 'g-', linewidth=50, alpha = 0.2)       
         plt.xlabel('$RV_{Gaussian}$ [m/s]')
         plt.ylabel('$RV_{FT,H}$ [m/s]')        
 
         plt.subplot(153)
-        plt.scatter(X, X-Y, color='k')
-        # fit = np.polyfit(X, X-Y, 1)
-        # x_sample = np.linspace(min(X)*1.2, max(X)*1.2, num=100, endpoint=True)
-        # y_sample = fit[0]*x_sample + fit[1]        
-        # plt.plot(x_sample, y_sample, 'g-', linewidth=100, alpha = 0.3)      
+        plt.scatter(X, X-Y, color='k', alpha=0.5)
+        fit = np.polyfit(X, X-Y, 1)
+        x_sample = np.linspace(min(X)*1.2, max(X)*1.2, num=100, endpoint=True)
+        y_sample = fit[0]*x_sample + fit[1]        
+        # plt.plot(x_sample, y_sample, 'g-', linewidth=80, alpha = 0.2)      
         plt.xlabel('$RV_{Gaussian}$ [m/s]')
-        plt.ylabel('$RV_{Gaussian} - RV_{FT,L}$ [m/s]')
+        plt.ylabel(r'$\Delta RV_L$ [m/s]')
 
         plt.subplot(154)
-        plt.scatter(X, Z-X, color='k')
-        # fit = np.polyfit(X, Z-X, 1)
-        # x_sample = np.linspace(min(X)*1.2, max(X)*1.2, num=100, endpoint=True)
-        # y_sample = fit[0]*x_sample + fit[1]        
-        # plt.plot(x_sample, y_sample, 'g-', linewidth=100, alpha = 0.3)      
+        plt.scatter(X, Z-X, color='k', alpha=0.5)
+        fit = np.polyfit(X, Z-X, 1)
+        x_sample = np.linspace(min(X)*1.2, max(X)*1.2, num=100, endpoint=True)
+        y_sample = fit[0]*x_sample + fit[1]        
+        # plt.plot(x_sample, y_sample, 'g-', linewidth=80, alpha = 0.2)      
         plt.xlabel('$RV_{Gaussian}$ [m/s]')
-        plt.ylabel('$RV_{FT,H} - RV_{Gaussian}$ [m/s]')
+        plt.ylabel(r'$\Delta RV_H$ [m/s]')
 
         # plt.title('Stellar jitter as strong as plantary signal')
         # plt.title('Jitter only; no planet')
@@ -256,16 +257,18 @@ for n in range(N):
 
         plt.subplot(155)
         fit = np.polyfit(X-Y, Z-X, 1)
-        x_sample = np.linspace(min(X-Y)*1.2, max(X-Y)*1.2, num=100, endpoint=True)
+        x_sample = np.linspace(min(X-Y)*1.5, max(X-Y)*1.5, num=100, endpoint=True)
         y_sample = fit[0]*x_sample + fit[1]        
-        plt.plot(x_sample, y_sample, 'g-', linewidth=40, alpha = 0.3)    
-        plt.scatter(X-Y, Z-X, color='k')
-        plt.xlabel('$RV_{Gaussian} - RV_{FT,L}$ [m/s]')    
-        plt.ylabel('$RV_{FT,H} - RV_{Gaussian}$ [m/s]')     
-        # plt.savefig('Correlation_20pj.png')   
+        plt.plot(x_sample, y_sample, 'g-', linewidth=35, alpha = 0.2)    
+        plt.scatter(X-Y, Z-X, color='k', alpha=0.5)
+        plt.xlim([-0.6, 0.6])
+        plt.ylim([-3.8, 3.8])
+        plt.xlabel(r'$\Delta RV_L$ [m/s]')    
+        plt.ylabel(r'$\Delta RV_H$ [m/s]')     
+        plt.savefig('Correlation_20pj.png')   
         # plt.savefig('Correlation_2pj.png')   
         # plt.savefig('Correlation_null.png')   
-        plt.savefig('Correlation_0jitter.png')   
+        # plt.savefig('Correlation_0jitter.png')   
         plt.show()
 
 
@@ -367,7 +370,7 @@ for n in range(N):
     print('# MCMC without jitter correction #')
 
     # each data is equally weighted 
-    yerr    = 0.1 + np.zeros(X.shape) # for S/N = 2000
+    yerr    = 0.5 + np.zeros(X.shape) # 0.5 for S/N = 2000 and 0.1 for S/N = 10000
 
     def lnprior2(theta2):
         a2, k2, phi2, b2 = theta2
@@ -428,8 +431,16 @@ for n in range(N):
     real_samples[:,0:2] = np.exp(real_samples[:,0:2])
 
     import corner
+
+    left  = 0.10  # the left side of the subplots of the figure
+    right = 0.95    # the right side of the subplots of the figure
+    bottom = 0.12   # the bottom of the subplots of the figure
+    top = 0.95      # the top of the subplots of the figure     
+    plt.rcParams.update({'font.size': 14})
+
     fig = corner.corner(real_samples, labels=[r"$A$", r"$\nu$", r"$\omega$", r"$\beta$"], truths=[real_a, real_k, real_phi, 100],
-                        quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
+                        quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 17})
+    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top)
     plt.savefig(new_dir + '3-MCMC2.png')
 
 
@@ -455,29 +466,33 @@ for n in range(N):
 
     print(np.vstack((a2, k2, phi2, b2)))
 
-
+    plt.rcParams.update({'font.size': 15})    
     fig = plt.figure()
     RV2_pos = a2[0] * np.sin(x/100. * k2[0] * 2. * np.pi + phi2[0]) + b2[0]
     RV2_os  = a2[0] * np.sin(t/100. * k2[0] * 2. * np.pi + phi2[0]) + b2[0]
-    frame1  = fig.add_axes((.1,.3,.8,.6))
+    frame1  = fig.add_axes((.15, .4, .8, .5))
     frame1.axhline(color="gray", ls='--')
     plt.errorbar(x/100, X, yerr=yerr, fmt="ok", capsize=0, label='Simulated RV', ecolor='blue', mfc='blue', mec='blue', alpha=0.5)
     plt.xlim(0, 4)
+    plt.ylim(min(X)*1.2, max(X)*3)
     plt.plot(x/100, RV2_pos, 'gs')
     plt.plot(t/100, RV2_os, 'g--', label='Planet model')
     plt.title('No correction')
     plt.ylabel("RV [m/s]")
-    plt.legend()
+    plt.legend(loc = 1, prop={'size': 14})
     frame1.set_xticklabels([])
 
-    frame2  = fig.add_axes((.1,.1,.8,.2))   
+    frame2  = fig.add_axes((.15, .15, .8, .2))  
     frame2.axhline(color="gray", ls='--')
     rms     = np.sqrt(np.var(RV2_pos - X))
-    plt.errorbar(x/100, X-RV2_pos, yerr=yerr, fmt=".k", capsize=0, alpha=0.5, label=r'rms$=%.2f$ m/s' %rms)
+    res_2     = X-RV2_pos
+    plt.errorbar(x/100, res_2, yerr=yerr, fmt=".k", capsize=0, alpha=0.5)
     plt.xlim(0, 4) 
+    plt.ylim(min(res_2)*1.5, max(res_2)*2.)
     plt.xlabel(r"$P_{rot}$")
     plt.ylabel("Residual [m/s]")
-    plt.legend()
+    plt.text(2.5, max(res_2)*1.2, r'rms$=%.2f$ m/s' %rms, fontsize=14)
+    # plt.legend(loc = 1, prop={'size': 14}, framealpha=0.0)
     plt.savefig(new_dir + '5-Fit2.png')
     plt.close('all')
 
@@ -574,8 +589,10 @@ for n in range(N):
         real_samples[:,3] = np.exp(real_samples[:,3])
 
         import corner
+        plt.rcParams.update({'font.size': 15})
         fig = corner.corner(real_samples, labels=[r"$A$", r"$\nu$", r"$\omega$", r"$\alpha$", r"$\beta$"], truths=[real_a, real_k, real_phi, 100, 100],
-                            quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
+                            quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 18})
+        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top)
         plt.savefig(new_dir + '3-MCMC1' + suffix + '.png')
 
         #==============================================================================
@@ -619,19 +636,20 @@ for n in range(N):
         RV_pos  = a[0] * np.sin(x/100. * k[0] * 2. * np.pi + phi[0])
         RV_os   = a[0] * np.sin(t/100. * k[0] * 2. * np.pi + phi[0])
         Jitter_pos = (proto_jitter + b[0]) * m[0]
-        frame1  = fig.add_axes((.1,.3,.8,.6))
+        frame1  = fig.add_axes((.15, .4, .8, .5))
         frame1.axhline(color="gray", ls='--')
         plt.errorbar(x/100, X, yerr=yerr, fmt="ok", capsize=0, label='Simulated RV', ecolor='blue', mfc='blue', mec='blue', alpha=0.5)
-        plt.plot(x/100, RV_pos, 'gs')
+        plt.plot(x/100, RV_pos, 'gs', alpha = 0.5)
         plt.plot(t/100, RV_os, 'g--', label='Planet model')
         plt.plot(x/100, Jitter_pos, '.', label='Jitter correction', color='darkorange')
         plt.xlim(0, 4)
+        plt.ylim(min(X)*1.2, max(X)*3)
         plt.title('Jitter correction')
         plt.ylabel("RV [m/s]")
-        plt.legend()
+        plt.legend(loc = 1, prop={'size': 14})
         frame1.set_xticklabels([])
 
-        frame2  = fig.add_axes((.1,.1,.8,.2))   
+        frame2  = fig.add_axes((.15, .15, .8, .2))   
         frame2.axhline(color="gray", ls='--')
         res     = X - (Jitter_pos+RV_pos)
         rms_new = np.std(res)
@@ -650,11 +668,12 @@ for n in range(N):
             amplitude1[n]  = a[0]
             period1[n]     = k[0]
 
-        plt.errorbar(x/100, res, yerr=yerr, fmt=".k", capsize=0, alpha=0.5, label=r'rms$=%.2f$ m/s' %rms_new)
+        plt.errorbar(x/100, res, yerr=yerr, fmt=".k", capsize=0, alpha=0.5)
         plt.xlim(0,4)
+        plt.ylim(min(res_2)*1.5, max(res_2)*2.)
         plt.xlabel(r"$P_{rot}$")
         plt.ylabel("Residual [m/s]")
-        plt.legend()
+        plt.text(2.5, max(res_2)*1.2, r'rms$=%.2f$ m/s' %rms_new, fontsize=14)
         plt.savefig(new_dir + '5-Fit1' + suffix + '.png')
         plt.close('all')
 
@@ -756,7 +775,7 @@ for n in range(N):
             real_samples[:,0]   = np.exp(real_samples[:,0])
 
             import corner
-            fig = corner.corner(real_samples, labels=[r"$\alpha$", r"$\beta$"], quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
+            fig = corner.corner(real_samples, labels=[r"$\alpha$", r"$\beta$"], quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 15})
             plt.savefig(new_dir + '3-MCMC1' + suffix + '.png')
 
             #==============================================================================
@@ -766,17 +785,18 @@ for n in range(N):
 
             fig = plt.figure()
             Jitter_pos = (proto_jitter + b[0]) * m[0]
-            frame1  = fig.add_axes((.1,.3,.8,.6))
+            frame1  = fig.add_axes((.15, .35, .8, .55))
             frame1.axhline(color="gray", ls='--')
             plt.errorbar(x/100, X, yerr=yerr, fmt="ok", capsize=0, label='Simulated RV', ecolor='blue', mfc='blue', mec='blue', alpha=0.5)
             plt.plot(x/100, Jitter_pos, '.', label='Jitter model', color='darkorange')
             plt.xlim(0, 4)
+            plt.ylim(min(X)*1.5, max(X)*1.5)
             plt.title('Jitter correction')
             plt.ylabel("RV [m/s]")
             plt.legend()
             frame1.set_xticklabels([])
 
-            frame2  = fig.add_axes((.1,.1,.8,.2))   
+            frame2  = fig.add_axes((.15, .15, .8, .2))   
             frame2.axhline(color="gray", ls='--')
             res     = X - Jitter_pos
             rms_new = np.std(res)
@@ -792,6 +812,7 @@ for n in range(N):
             plt.ylabel("Residual [m/s]")
             plt.legend()
             plt.savefig(new_dir + '5-Fit1' + suffix + '.png')
+            plt.show()
             plt.close('all')
 
 
@@ -869,7 +890,7 @@ for n in range(N):
         # real_samples[:,1] = np.exp(real_samples[:,1])
 
         import corner
-        fig = corner.corner(real_samples, labels=labels, truths=[real_a, real_k, real_phi, 100, 100, 100], quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 12})
+        fig = corner.corner(real_samples, labels=labels, truths=[real_a, real_k, real_phi, 100, 100, 100], quantiles=[0.16, 0.5, 0.84], show_titles=True, title_kwargs={"fontsize": 15})
         plt.savefig(new_dir + '3-MCMC1_LS.png')
 
         #==============================================================================
@@ -1053,13 +1074,22 @@ np.savetxt('amplitude2.txt', amplitude2)
 np.savetxt('period1.txt', period1)
 np.savetxt('period2.txt', period2)
 
+if 1:
+    amplitude1 = np.loadtxt('amplitude1.txt')
+    amplitude2 = np.loadtxt('amplitude2.txt')
+    period1 = np.loadtxt('period1.txt')
+    period2 = np.loadtxt('period2.txt')
 
-mu, std = norm.fit(amplitude1)
+plt.rcParams.update({'font.size': 16})
+plt.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.95)
+idx = (amplitude1 < 4) & (amplitude2 < 4) & (period1 < 10)
+
+mu, std = norm.fit(amplitude1[idx])
 x_plot = np.linspace(mu-3*std, mu+3*std, 100)
 p_plot = norm.pdf(x_plot, mu, std)
 plotting = plt.plot(x_plot, p_plot, 'r', linewidth=2, alpha = 0.7)
 
-mu, std = norm.fit(amplitude2)
+mu, std = norm.fit(amplitude2[idx])
 x_plot = np.linspace(mu-3*std, mu+3*std, 100)
 p_plot = norm.pdf(x_plot, mu, std)
 plotting = plt.plot(x_plot, p_plot, 'b', linewidth=2, alpha = 0.7)
@@ -1067,14 +1097,18 @@ plotting = plt.plot(x_plot, p_plot, 'b', linewidth=2, alpha = 0.7)
 bins = 20
 ax = plt.subplot(111)
 ax.axvline(x=real_a, color='k', ls='-.')
-plt.hist([amplitude1, amplitude2], color=['r', 'b'], bins=bins, density=True, alpha=0.5, label=['Jitter correction','No correction'])
+plt.hist([amplitude2[idx], amplitude1[idx]], color=['b', 'r'], bins=bins, density=True, alpha=0.5, label=['No correction', 'Jitter correction'])
 plt.xlabel('Amplitude [m/s]')
 plt.ylabel('Number density')
+# plt.ylim([0, 1.39])
 plt.legend()
+# plt.show()
 plt.savefig('Histogram_new1.png')
 plt.close('all')
 
-if 1:
+plt.figure()
+plt.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.95)
+if 0:
     mu, std = norm.fit(period1)
     x_plot = np.linspace(mu-3*std, mu+3*std, 100)
     p_plot = norm.pdf(x_plot, mu, std)
@@ -1087,18 +1121,18 @@ if 1:
 
 bins = 20
 ax = plt.subplot(111)
-ax.axvline(x=real_k, color='k', ls='-.')
-plt.hist([period1, period2], color=['r', 'b'], bins=bins, density=True, alpha=0.5, label=['Jitter correction','No correction'])
+# ax.axvline(x=real_k, color='k', ls='-.')
+plt.hist([period2[idx], period1[idx]], color=['b', 'r'], bins=bins, density=True, alpha=0.5, label=['No correction', 'Jitter correction'])
 # plt.hist([period1, period2], color=['r', 'b'], bins=bins, density=True, alpha=0.5)
 plt.xlabel(r'$\nu_{orb}$ / $\nu_{rot}$')
 plt.ylabel('Number density')
-plt.legend()
-# plt.show()
+# plt.ylim([0, 100])
+plt.legend(loc = 1)
 plt.savefig('Histogram_new2.png')
 plt.close('all')
 
-s = 0.05
-arr = np.arange(500)
+s = 0.01
+arr = np.arange(N)
 idx_a1 = (real_a*(1-s) < amplitude1) * (amplitude1< real_a*(1+s))
 idx_a2 = (real_a*(1-s) < amplitude2) * (amplitude2< real_a*(1+s))
 idx_p1 = (real_k*(1-s) < period1) * (period1< real_k*(1+s))
@@ -1116,7 +1150,7 @@ arr[idx_a2*idx_p2]
 arr[idx_a1*idx_p1*idx_a2*idx_p2]
 
 percentage = [sum(idx_a1)/N, sum(idx_a2)/N, sum(idx_p1)/N, sum(idx_p2)/N, sum(idx_a1*idx_p1)/N, sum(idx_a2*idx_p2)/N]
-np.savetxt('percentage5.txt', percentage)
+np.savetxt('percentage1.txt', percentage)
 
 
 

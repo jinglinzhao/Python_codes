@@ -20,7 +20,6 @@ t 		= np.loadtxt(DIR + '/MJD.dat')
 XX 		= np.loadtxt(DIR + '/RV_HARPS.dat')
 XX 		= (XX - np.mean(XX)) * 1000
 yerr 	= np.loadtxt(DIR + '/RV_noise.dat') #m/s
-# YERR    = np.loadtxt(DIR + '/RV_noise.dat') #m/s
 FWHM    = np.loadtxt(DIR + '/FWHM.dat')
 
 
@@ -32,7 +31,6 @@ FWHM    = np.loadtxt(DIR + '/FWHM.dat')
 
 YY  = np.loadtxt('../data/'+star+'/YY.txt')
 ZZ  = np.loadtxt('../data/'+star+'/ZZ.txt')
-
 
 XY 	= XX - YY
 ZX 	= ZZ - XX
@@ -46,38 +44,75 @@ os.chdir('../output/'+star)
 # present the pre-filetered data
 
 plt.figure()
-plt.errorbar(t, XX, yerr=yerr, fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
+# plt.errorbar(t, XX, yerr=yerr, fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
 plt.errorbar(t, XY, yerr=yerr, fmt=".r", capsize=0, alpha=0.2, label='$RV_{HARPS} - RV_{FT,L}$')
-plt.errorbar(t, ZX, yerr=yerr, fmt=".b", capsize=0, alpha=0.2, label='$RV_{FT,H} - RV_{HARPS}$')
+# plt.errorbar(t, ZX, yerr=yerr, fmt=".b", capsize=0, alpha=0.2, label='$RV_{FT,H} - RV_{HARPS}$')
 plt.ylabel("RV [m/s]")
 plt.xlabel("JD - 2,400,000")
 plt.legend()
 plt.show()
 
-# Valid for data HD128621_2_2010-03-22..2010-06-12[PART]
 # Filter the unwanted data
-idx  = ~((XY>3) | ((t>55340) & (XX>0)))
+if 0: # Valid for data HD128621_2_2010-03-22..2010-06-12[PART]
+    # idx  = ~((XY>3) | ((t>55340) & (XX>0)))
+    # the following does the job equally good 
+    idx = (FWHM<6.3) &  (FWHM>6.24)
+if 0: # valid for part 3 [part] (i.e. 2011-02-18..2011-05-15)
+    idx = ~ ((XY>1.5) | (XX>30) | ((t>55658) & (t<55659) & (XX>5)) | ((t>55679) & (t<55680) & (XX>-10)) | ((t>55692) & (t<55693) & (XY<0)) | (FWHM<6.22))
+if 1: # valid for part 1 [part]
+    idx = (FWHM>6.23) & (t<54975)
 
 plt.figure()
-plt.errorbar(FWHM[idx], XY[idx], yerr=yerr[idx], fmt=".k")
-plt.errorbar(FWHM[~idx], XY[~idx], yerr=yerr[~idx], fmt=".b")
+plt.errorbar(FWHM[idx], XY[idx], yerr=yerr[idx], fmt=".k", alpha=0.2)
+plt.errorbar(FWHM[~idx], XY[~idx], yerr=yerr[~idx], fmt=".b", alpha=0.2)
 plt.ylabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
 plt.xlabel("FWHM")
 plt.savefig('0-correlation_XY.png')
 plt.show()
 
 plt.figure()
-plt.errorbar(FWHM[idx], ZX[idx], yerr=yerr[idx], fmt=".k")
-plt.errorbar(FWHM[~idx], ZX[~idx], yerr=yerr[~idx], fmt=".b")
+plt.plot(FWHM[idx], XY[idx], ".k", alpha=0.2)
+plt.plot(FWHM[~idx], XY[~idx], ".b", alpha=0.2)
+plt.ylabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
+plt.xlabel("FWHM")
+plt.show()
+
+
+plt.figure()
+plt.errorbar(FWHM[idx], ZX[idx], yerr=yerr[idx], fmt=".k", alpha=0.2)
+plt.errorbar(FWHM[~idx], ZX[~idx], yerr=yerr[~idx], fmt=".b", alpha=0.2)
 plt.ylabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
 plt.xlabel("FWHM")
 plt.savefig('0-correlation_ZX.png')
 plt.show()
 
 
+
+# Binary orbit (without fitting planet) # 
+lin0 = -22700.1747+22720.110791117946
+lin1 = -0.5307
+lin2 = -1.83e-5
+BJD0 = 55278.739366
+def trend(x):
+    return lin0 + lin1 * (x-BJD0) + lin2 * (x-BJD0)**2
+
+# Binary orbit (with fitting planet) # 
+lin0 = -22700.1678+22720.110791117946
+lin1 = -0.5305
+def trend(x):
+    return lin0 + lin1 * (x-BJD0)
+
 plt.figure()
 plt.errorbar(t[idx], XX[idx], yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
 plt.errorbar(t[~idx], XX[~idx], yerr=yerr[~idx], fmt="*r", capsize=0, alpha=0.2, label='$RV_{HARPS}$ outlier')
+plt.legend()
+plt.show()
+
+# XX = XX * 1000
+plt.figure()
+plt.errorbar(t[idx], XX[idx]-trend(t[idx]), yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
+# plt.errorbar(t[~idx], XX[~idx], yerr=yerr[~idx], fmt="*r", capsize=0, alpha=0.2, label='$RV_{HARPS}$ outlier')
+# plt.errorbar(t[idx], trend(t[idx]), yerr=yerr[idx], fmt=".r", capsize=0, alpha=0.2, label='trend')
 # plt.errorbar(t[idx], XY[idx], yerr=yerr[idx], fmt=".r", capsize=0, alpha=0.2, label='$RV_{HARPS} - RV_{FT,L}$')
 # plt.errorbar(t[~idx], XY[~idx], yerr=yerr[~idx], fmt=".b", capsize=0, alpha=0.2, label='outlier?')
 plt.ylabel("RV [m/s]")
@@ -85,6 +120,7 @@ plt.xlabel("JD - 2,400,000")
 plt.legend()
 plt.savefig('1-RV1.png')
 plt.show()
+
 
 plt.figure()
 # plt.errorbar(t, XX, yerr=yerr, fmt=".k", capsize=0, label='$RV_{HARPS}$')
@@ -117,11 +153,65 @@ plt.errorbar(XY[idx], ZX[idx], yerr=yerr[idx], fmt=".r", alpha=0.2)
 plt.errorbar(XY[~idx], ZX[~idx], yerr=yerr[~idx], fmt="*b", alpha=0.2)
 plt.xlabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
 plt.ylabel("$RV_{FT,H} - RV_{HARPS}$ [m/s]")
-plt.savefig('2-correlation_XYZ.png')
+# plt.savefig('2-correlation_XYZ.png')
 plt.show()
 
 
+#==============================================================================
+# Correlation 1
+#==============================================================================
+left  = 0.05  # the left side of the subplots of the figure
+right = 0.95    # the right side of the subplots of the figure
+bottom = 0.15   # the bottom of the subplots of the figure
+top = 0.9      # the top of the subplots of the figure
+wspace = 0.4   # the amount of width reserved for blank space between subplots
+hspace = 0.2   # the amount of height reserved for white space between subplots
 
+plt.rcParams.update({'font.size': 16})
+fig, axes = plt.subplots(1, 3, figsize=(20, 5))
+plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+
+plt.subplot(151)
+plt.plot(XX[idx]-trend(t[idx]), YY[idx]-trend(t[idx]), '.k', markersize=3, alpha=0.3)
+# plt.plot(XX[~idx]-trend(t[~idx]), YY[~idx], '*r', markersize=3, alpha=0.3)
+plt.xlabel('$RV_{HARPS}$ [m/s]')
+plt.ylabel('$RV_{FT,L}$ [m/s]')    
+
+plt.subplot(152)
+plt.plot(XX[idx]-trend(t[idx]), ZZ[idx]-trend(t[idx]), '.k', markersize=3, alpha=0.3)
+# plt.plot(XX[~idx]-trend(t[~idx]), ZZ[~idx], '*r', markersize=3, alpha=0.3)
+plt.xlabel('$RV_{HARPS}$ [m/s]')
+plt.ylabel('$RV_{FT,H}$ [m/s]')        
+
+plt.subplot(153)
+plt.plot(XX[idx]-trend(t[idx]), XY[idx], '.k', markersize=3, alpha=0.3)
+# plt.plot(XX[~idx]-trend(t[~idx]), XY[~idx], '*r', markersize=3, alpha=0.3)
+plt.xlabel('$RV_{HARPS}$ [m/s]')
+plt.ylabel('$RV_{HARPS} - RV_{FT,L}$ [m/s]')
+plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
+# plt.title(r'$\alpha$' + ' Centauri B 2011-02-18..2011-05-15')
+# plt.title(r'$\alpha$' + ' Centauri B 2009-02-15..2009-05-06')
+
+plt.subplot(154)
+plt.plot(XX[idx]-trend(t[idx]), ZX[idx], '.k', markersize=3, alpha=0.3)
+# plt.plot(XX[~idx]-trend(t[~idx]), ZX[~idx], '*r', markersize=3, alpha=0.3)   
+plt.xlabel('$RV_{HARPS}$ [m/s]')
+plt.ylabel('$RV_{FT,H} - RV_{HARPS}$ [m/s]')
+
+plt.subplot(155)
+fit = np.polyfit(XY, ZX, 1)
+x_sample = np.linspace(min(XY)*1.2, max(XY)*1.2, num=100, endpoint=True)
+plt.plot(XY[idx], ZX[idx], '.k', markersize=3, alpha=0.3)
+# plt.plot(XY[~idx], ZX[~idx], '*r', markersize=3, alpha=0.3)   
+plt.xlabel('$RV_{HARPS} - RV_{FT,L}$ [m/s]')    
+plt.ylabel('$RV_{FT,H} - RV_{HARPS}$ [m/s]')     
+plt.savefig('Correlation.png')   
+plt.show()
+
+
+#==============================================================================
+# Correlation 2
+#==============================================================================
 left  = 0.05  # the left side of the subplots of the figure
 right = 0.95    # the right side of the subplots of the figure
 bottom = 0.15   # the bottom of the subplots of the figure
@@ -151,7 +241,8 @@ plt.plot(XX[~idx], XY[~idx], '*r', markersize=3, alpha=0.3)
 plt.xlabel('$RV_{HARPS}$ [m/s]')
 plt.ylabel('$RV_{HARPS} - RV_{FT,L}$ [m/s]')
 plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
-
+# plt.title(r'$\alpha$' + ' Centauri B 2011-02-18..2011-05-15')
+# plt.title(r'$\alpha$' + ' Centauri B 2009-02-15..2009-05-06')
 
 plt.subplot(154)
 plt.plot(XX[idx], ZX[idx], '.k', markersize=3, alpha=0.3)
@@ -169,6 +260,8 @@ plt.ylabel('$RV_{FT,H} - RV_{HARPS}$ [m/s]')
 plt.savefig('Correlation.png')   
 plt.show()
 
+
+
 # t = t - min(t)
 t = t[idx]
 y = XY[idx]
@@ -182,7 +275,6 @@ sl      = 0.5         # smoothing length
 xy      = gaussian_smoothing(t, y, t, sl, 1/yerr**2)
 # zx      = gaussian_smoothing(t, ZX, t, sl)
 np.savetxt('../../data/'+star+'/xy.txt', xy)
-
 
 plt.figure()
 # plt.errorbar(t, xx, yerr=yerr, fmt=".k", capsize=0, label='$RV_{HARPS}$')
