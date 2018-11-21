@@ -16,12 +16,10 @@ plt.rcParams.update({'font.size': 14})
 
 DIR     = '/Volumes/DataSSD/OneDrive - UNSW/Hermite_Decomposition/ESO_HARPS/' + star
 t 		= np.loadtxt(DIR + '/MJD.dat')
-# MJD     = np.loadtxt(DIR + '/MJD.dat')
 XX 		= np.loadtxt(DIR + '/RV_HARPS.dat')
 XX 		= (XX - np.mean(XX)) * 1000
 yerr 	= np.loadtxt(DIR + '/RV_noise.dat') #m/s
 FWHM    = np.loadtxt(DIR + '/FWHM.dat')
-
 
 # t  	= np.loadtxt('../data/'+star+'/MJD.dat')
 # XX  = np.loadtxt('../data/'+star+'/RV_HARPS.dat')
@@ -174,20 +172,20 @@ plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspac
 plt.subplot(151)
 plt.plot(XX[idx]-trend(t[idx]), YY[idx]-trend(t[idx]), '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), YY[~idx], '*r', markersize=3, alpha=0.3)
-plt.xlabel('$RV_{HARPS}$ [m/s]')
-plt.ylabel('$RV_{FT,L}$ [m/s]')    
+plt.xlabel(r'$RV_{HARPS}$ [m/s]')
+plt.ylabel(r'$RV_{FT,L}$ [m/s]')    
 
 plt.subplot(152)
 plt.plot(XX[idx]-trend(t[idx]), ZZ[idx]-trend(t[idx]), '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), ZZ[~idx], '*r', markersize=3, alpha=0.3)
-plt.xlabel('$RV_{HARPS}$ [m/s]')
-plt.ylabel('$RV_{FT,H}$ [m/s]')        
+plt.xlabel(r'$RV_{HARPS}$ [m/s]')
+plt.ylabel(r'$RV_{FT,H}$ [m/s]')        
 
 plt.subplot(153)
 plt.plot(XX[idx]-trend(t[idx]), XY[idx], '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), XY[~idx], '*r', markersize=3, alpha=0.3)
-plt.xlabel('$RV_{HARPS}$ [m/s]')
-plt.ylabel('$RV_{HARPS} - RV_{FT,L}$ [m/s]')
+plt.xlabel(r'$RV_{HARPS}$ [m/s]')
+plt.ylabel(r'$\Delta RV_L$ [m/s]')
 plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
 # plt.title(r'$\alpha$' + ' Centauri B 2011-02-18..2011-05-15')
 # plt.title(r'$\alpha$' + ' Centauri B 2009-02-15..2009-05-06')
@@ -195,17 +193,17 @@ plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
 plt.subplot(154)
 plt.plot(XX[idx]-trend(t[idx]), ZX[idx], '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), ZX[~idx], '*r', markersize=3, alpha=0.3)   
-plt.xlabel('$RV_{HARPS}$ [m/s]')
-plt.ylabel('$RV_{FT,H} - RV_{HARPS}$ [m/s]')
+plt.xlabel(r'$RV_{HARPS}$ [m/s]')
+plt.ylabel(r'$\Delta RV_H$ [m/s]')
 
 plt.subplot(155)
 fit = np.polyfit(XY, ZX, 1)
 x_sample = np.linspace(min(XY)*1.2, max(XY)*1.2, num=100, endpoint=True)
 plt.plot(XY[idx], ZX[idx], '.k', markersize=3, alpha=0.3)
 # plt.plot(XY[~idx], ZX[~idx], '*r', markersize=3, alpha=0.3)   
-plt.xlabel('$RV_{HARPS} - RV_{FT,L}$ [m/s]')    
-plt.ylabel('$RV_{FT,H} - RV_{HARPS}$ [m/s]')     
-plt.savefig('Correlation.png')   
+plt.xlabel(r'$\Delta RV_L$ [m/s]')    
+plt.ylabel(r'$\Delta RV_H$ [m/s]')     
+# plt.savefig('Correlation.png')   
 plt.show()
 
 
