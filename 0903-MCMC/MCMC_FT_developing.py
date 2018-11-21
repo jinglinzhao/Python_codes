@@ -169,9 +169,9 @@ for n in range(N):
     #====================================
 
     # re-sample
-    x       = gran_gen(n_group, n_obs)
+    # x       = gran_gen(n_group, n_obs)
     # x = np.sort(random.sample(range(200), n_obs))
-    # x = np.arange(200)
+    x = np.arange(200)
     print('Observation samples:')
     print(x)    
     X   = np.array([GG[i] for i in x])
@@ -218,7 +218,7 @@ for n in range(N):
         fit = np.polyfit(X, Y, 1)
         x_sample = np.linspace(min(X)*1.1, max(X)*1.1, num=100, endpoint=True)
         y_sample = fit[0]*x_sample + fit[1]        
-        plt.plot(x_sample, y_sample, 'g-', linewidth=5, alpha = 0.2)
+        plt.plot(x_sample, y_sample, 'g-', linewidth=10, alpha = 0.2)
         # plt.plot(x_sample, y_sample, 'g-', linewidth=15, alpha = 0.2)       
         plt.xlabel('$RV_{Gaussian}$ [m/s]')
         plt.ylabel('$RV_{FT,L}$ [m/s]')    
@@ -228,8 +228,8 @@ for n in range(N):
         fit = np.polyfit(X, Z, 1)
         x_sample = np.linspace(min(X)*1.2, max(X)*1.2, num=100, endpoint=True)
         y_sample = fit[0]*x_sample + fit[1]        
-        # # plt.plot(x_sample, y_sample, 'g-', linewidth=5, alpha = 0.3)
-        # plt.plot(x_sample, y_sample, 'g-', linewidth=50, alpha = 0.2)       
+        # plt.plot(x_sample, y_sample, 'g-', linewidth=5, alpha = 0.2)
+        plt.plot(x_sample, y_sample, 'g-', linewidth=50, alpha = 0.2)       
         plt.xlabel('$RV_{Gaussian}$ [m/s]')
         plt.ylabel('$RV_{FT,H}$ [m/s]')        
 
@@ -259,16 +259,16 @@ for n in range(N):
         fit = np.polyfit(X-Y, Z-X, 1)
         x_sample = np.linspace(min(X-Y)*1.5, max(X-Y)*1.5, num=100, endpoint=True)
         y_sample = fit[0]*x_sample + fit[1]        
-        plt.plot(x_sample, y_sample, 'g-', linewidth=35, alpha = 0.2)    
+        # plt.plot(x_sample, y_sample, 'g-', linewidth=75, alpha = 0.2)    
         plt.scatter(X-Y, Z-X, color='k', alpha=0.5)
         plt.xlim([-0.6, 0.6])
         plt.ylim([-3.8, 3.8])
         plt.xlabel(r'$\Delta RV_L$ [m/s]')    
         plt.ylabel(r'$\Delta RV_H$ [m/s]')     
-        plt.savefig('Correlation_20pj.png')   
+        # plt.savefig('Correlation_20pj.png')   
         # plt.savefig('Correlation_2pj.png')   
         # plt.savefig('Correlation_null.png')   
-        # plt.savefig('Correlation_0jitter.png')   
+        plt.savefig('Correlation_0jitter.png')   
         plt.show()
 
 
@@ -1102,7 +1102,7 @@ plt.xlabel('Amplitude [m/s]')
 plt.ylabel('Number density')
 # plt.ylim([0, 1.39])
 plt.legend()
-# plt.show()
+plt.show()
 plt.savefig('Histogram_new1.png')
 plt.close('all')
 
@@ -1158,76 +1158,86 @@ np.savetxt('percentage1.txt', percentage)
 # Lomb-Scargle periodogram 
 #==============================================================================
 from astropy.stats import LombScargle
+
+GG  = np.loadtxt('GG.txt')
+XX  = np.loadtxt('XX.txt')
+YY  = np.loadtxt('YY.txt')
+ZZ  = np.loadtxt('ZZ.txt')
+t   = np.arange(len(GG))
+
 min_f   = 1/1000
 max_f   = 1/25
-spp     = 10
+spp     = 50
 
 frequency0, power0 = LombScargle(t, GG).autopower(minimum_frequency=min_f,
                                                         maximum_frequency=max_f,
                                                         samples_per_peak=spp)
 
-frequency1, power1 = LombScargle(t, XX-YY).autopower(minimum_frequency=min_f,
+frequency1, power1 = LombScargle(t, ZZ-GG).autopower(minimum_frequency=min_f,
                                                             maximum_frequency=max_f,
                                                             samples_per_peak=spp)
 
-frequency_2, power_2 = LombScargle(t, ZZ-XX).autopower(minimum_frequency=min_f,
-                                                            maximum_frequency=max_f,
-                                                            samples_per_peak=spp)
-
-
-frequency0, power0 = LombScargle(x, X).autopower(minimum_frequency=min_f,
-                                                        maximum_frequency=max_f,
-                                                        samples_per_peak=spp)
-
-frequency1, power1 = LombScargle(x, ZX).autopower(minimum_frequency=min_f,
-                                                            maximum_frequency=max_f,
-                                                            samples_per_peak=spp)
-
-frequency_2, power_2 = LombScargle(x, XY).autopower(minimum_frequency=min_f,
-                                                            maximum_frequency=max_f,
-                                                            samples_per_peak=spp)
-
-frequency_w, power_w = LombScargle(x, yerr).autopower(minimum_frequency=min_f,
+frequency_2, power_2 = LombScargle(t, GG-YY).autopower(minimum_frequency=min_f,
                                                             maximum_frequency=max_f,
                                                             samples_per_peak=spp)
 
 
+# frequency0, power0 = LombScargle(x, X).autopower(minimum_frequency=min_f,
+#                                                         maximum_frequency=max_f,
+#                                                         samples_per_peak=spp)
+
+# frequency1, power1 = LombScargle(x, ZX).autopower(minimum_frequency=min_f,
+#                                                             maximum_frequency=max_f,
+#                                                             samples_per_peak=spp)
+
+# frequency_2, power_2 = LombScargle(x, XY).autopower(minimum_frequency=min_f,
+#                                                             maximum_frequency=max_f,
+#                                                             samples_per_peak=spp)
+
+# frequency_w, power_w = LombScargle(x, yerr).autopower(minimum_frequency=min_f,
+#                                                             maximum_frequency=max_f,
+#                                                             samples_per_peak=spp)
+
+plt.rcParams.update({'font.size': 16})
+plt.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.95)
 ax = plt.subplot(111)
 ax.axhline(y=0, color='k')
-plt.plot(frequency0/0.01, power0, 'b-', label=r'$RV_{Gaussian}$', linewidth=1.0)
-plt.plot(frequency1/0.01, power1, 'r-.', label=r'$RV_{FT,H} - RV_{Gaussian}$', alpha=0.7)
-plt.plot(frequency_2/0.01, power_2, 'r--', label=r'$RV_{Gaussian} - RV_{FT,L}$', alpha=0.7)
+plt.plot(frequency0/0.01, power0, 'b-', label=r'$RV_{Gaussian}$', linewidth=0.8)
+plt.plot(frequency1/0.01, power1, 'r-.', label=r'$\Delta RV_{H}$', alpha=0.7)
+plt.plot(frequency_2/0.01, power_2, 'r--', label=r'$\Delta RV_{L}$', alpha=0.7)
 # plt.plot(frequency_w/0.01, power_w, 'g--', label=r'window', alpha=0.7)
-plt.title('Lomb-Scargle Periodogram')
+# plt.title('Lomb-Scargle Periodogram')
 plt.xlabel(r'$\nu_{orb}$ / $\nu_{rot}$')
 plt.ylabel("Power")
-ax.axvline(x=0.7, color='b', linewidth=2.0, alpha=0.5)
-ax.axvline(x=1, color='r', linewidth=2.0, alpha=0.5)
-ax.axvline(x=2, color='r', linewidth=2.0, alpha=0.5)
-ax.axvline(x=3, color='r', linewidth=2.0, alpha=0.5)
+ax.axvline(x=0.7, color='b', linewidth=3.0, alpha=0.5)
+ax.axvline(x=1, color='r', linewidth=3.0, alpha=0.5)
+ax.axvline(x=2, color='r', linewidth=3.0, alpha=0.5)
+ax.axvline(x=3, color='r', linewidth=3.0, alpha=0.5)
 plt.ylim(0, max(power0)*1.1)   
 plt.xlim(0, 4)   
 plt.legend()    
-plt.savefig(new_dir + '0-Periodogram_1.png')
-# plt.show()
+plt.savefig('0-Periodogram_1.png')
+plt.show()
 plt.close('all')
 
 
 if 0:
 	fig = plt.figure()
-	plt.plot(X, XY, '*', label='FT_Y')
-	plt.plot(X, ZX, 'o', label='FT_Z')
+	plt.plot(X, GG-YY, '*', label='FT_Y')
+	plt.plot(X, GG-YY, 'o', label='FT_Z')
 	plt.title('Linearity')
 	plt.ylabel(r"$RV [m/s]$")
 	plt.xlabel("Jitter [m/s]")
 	plt.legend()
-	# plt.show()
+	plt.show()
 
-	fig = plt.figure()
-	plt.plot(t, GG, '*', label='GG')
-	plt.plot(t, RV_jitter, 'o', label='RV_jitter')
-	plt.legend()
-	# plt.show()
+    fig = plt.figure()
+    # plt.plot(t, GG, '*', label='GG')
+    # plt.plot(t, GG-YY, '*', label='jitter')
+    plt.plot(t, ZZ-GG, '*', label='jitter')
+    # plt.plot(t, RV_jitter, 'o', label='RV_jitter')
+    plt.legend()
+    plt.show()
 
 #==============================================================================
 # Ende
