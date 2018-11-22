@@ -36,21 +36,21 @@ ZX 	= ZZ - XX
 os.chdir('../output/'+star)
 
 #==============================================================================
-# Time Series
+# Visualizing
 #==============================================================================
 
 # present the pre-filetered data
 
 plt.figure()
 # plt.errorbar(t, XX, yerr=yerr, fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
-plt.errorbar(t, XY, yerr=yerr, fmt=".r", capsize=0, alpha=0.2, label='$RV_{HARPS} - RV_{FT,L}$')
-# plt.errorbar(t, ZX, yerr=yerr, fmt=".b", capsize=0, alpha=0.2, label='$RV_{FT,H} - RV_{HARPS}$')
+# plt.errorbar(t, XY, yerr=yerr, fmt=".r", capsize=0, alpha=0.2, label=r'$\Delta RV_L$')
+plt.errorbar(t, ZX, yerr=yerr, fmt=".b", capsize=0, alpha=0.2, label=r'$\Delta RV_H$')
 plt.ylabel("RV [m/s]")
 plt.xlabel("JD - 2,400,000")
 plt.legend()
 plt.show()
 
-# Filter the unwanted data
+# Filter the unwanted data #
 if 0: # Valid for data HD128621_2_2010-03-22..2010-06-12[PART]
     # idx  = ~((XY>3) | ((t>55340) & (XX>0)))
     # the following does the job equally good 
@@ -60,30 +60,30 @@ if 0: # valid for part 3 [part] (i.e. 2011-02-18..2011-05-15)
 if 1: # valid for part 1 [part]
     idx = (FWHM>6.23) & (t<54975)
 
+# present the filetered data
+
 plt.figure()
 plt.errorbar(FWHM[idx], XY[idx], yerr=yerr[idx], fmt=".k", alpha=0.2)
 plt.errorbar(FWHM[~idx], XY[~idx], yerr=yerr[~idx], fmt=".b", alpha=0.2)
-plt.ylabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
+plt.ylabel(r'$\Delta RV_L$ [m/s]')
 plt.xlabel("FWHM")
 plt.savefig('0-correlation_XY.png')
 plt.show()
 
-plt.figure()
-plt.plot(FWHM[idx], XY[idx], ".k", alpha=0.2)
-plt.plot(FWHM[~idx], XY[~idx], ".b", alpha=0.2)
-plt.ylabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
-plt.xlabel("FWHM")
-plt.show()
-
+# plt.figure()
+# plt.plot(FWHM[idx], XY[idx], ".k", alpha=0.2)
+# plt.plot(FWHM[~idx], XY[~idx], ".b", alpha=0.2)
+# plt.ylabel(r'$\Delta RV_L$ [m/s]')
+# plt.xlabel("FWHM")
+# plt.show()
 
 plt.figure()
 plt.errorbar(FWHM[idx], ZX[idx], yerr=yerr[idx], fmt=".k", alpha=0.2)
 plt.errorbar(FWHM[~idx], ZX[~idx], yerr=yerr[~idx], fmt=".b", alpha=0.2)
-plt.ylabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
+plt.ylabel(r'$\Delta RV_H$ [m/s]')
 plt.xlabel("FWHM")
 plt.savefig('0-correlation_ZX.png')
 plt.show()
-
 
 
 # Binary orbit (without fitting planet) # 
@@ -101,58 +101,56 @@ def trend(x):
     return lin0 + lin1 * (x-BJD0)
 
 plt.figure()
-plt.errorbar(t[idx], XX[idx], yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
-plt.errorbar(t[~idx], XX[~idx], yerr=yerr[~idx], fmt="*r", capsize=0, alpha=0.2, label='$RV_{HARPS}$ outlier')
+# plt.errorbar(t[idx], XX[idx], yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
+# plt.errorbar(t[~idx], XX[~idx], yerr=yerr[~idx], fmt="*r", capsize=0, alpha=0.2, label='$RV_{HARPS}$ outlier')
+plt.errorbar(t[idx], XX[idx]-trend(t[idx]), yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label=r'$RV_{HARPS}$')
+plt.errorbar(t[~idx], XX[~idx]-trend(t[~idx]), yerr=yerr[~idx], fmt=".r", capsize=0, alpha=0.2, label=r'$RV_{HARPS}$ outlier')
 plt.legend()
+plt.savefig('1-RV0.png')
 plt.show()
 
-# XX = XX * 1000
 plt.figure()
-plt.errorbar(t[idx], XX[idx]-trend(t[idx]), yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
-# plt.errorbar(t[~idx], XX[~idx], yerr=yerr[~idx], fmt="*r", capsize=0, alpha=0.2, label='$RV_{HARPS}$ outlier')
-# plt.errorbar(t[idx], trend(t[idx]), yerr=yerr[idx], fmt=".r", capsize=0, alpha=0.2, label='trend')
-# plt.errorbar(t[idx], XY[idx], yerr=yerr[idx], fmt=".r", capsize=0, alpha=0.2, label='$RV_{HARPS} - RV_{FT,L}$')
-# plt.errorbar(t[~idx], XY[~idx], yerr=yerr[~idx], fmt=".b", capsize=0, alpha=0.2, label='outlier?')
+plt.errorbar(t[idx], XY[idx], yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label=r'$\Delta RV_L$')
+plt.errorbar(t[~idx], XY[~idx], yerr=yerr[~idx], fmt=".r", capsize=0, alpha=0.2, label='outlier')
 plt.ylabel("RV [m/s]")
 plt.xlabel("JD - 2,400,000")
 plt.legend()
 plt.savefig('1-RV1.png')
 plt.show()
 
-
 plt.figure()
-# plt.errorbar(t, XX, yerr=yerr, fmt=".k", capsize=0, label='$RV_{HARPS}$')
-plt.errorbar(t[idx], ZX[idx], yerr=yerr[idx], fmt=".r", capsize=0, alpha=0.2, label='$RV_{FT,H} - RV_{HARPS}$')
-plt.errorbar(t[~idx], ZX[~idx], yerr=yerr[~idx], fmt=".b", capsize=0, alpha=0.2, label='outlier?')
+plt.errorbar(t[idx], ZX[idx], yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label=r'$\Delta RV_H$')
+plt.errorbar(t[~idx], ZX[~idx], yerr=yerr[~idx], fmt=".r", capsize=0, alpha=0.2, label='outlier')
 plt.ylabel("RV [m/s]")
 plt.xlabel("JD - 2,400,000")
 plt.legend()
 plt.savefig('1-RV2.png')
 plt.show()
 
-plt.figure()
-plt.errorbar(XX[idx], XY[idx], yerr=yerr[idx], fmt=".k", alpha=0.2)
-plt.errorbar(XX[~idx], XY[~idx], yerr=yerr[~idx], fmt="*r", alpha=0.2)
-plt.xlabel("$RV_{HARPS}$ [m/s]")
-plt.ylabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
-plt.savefig('2-correlation_XY.png')
-plt.show()
+if 0:
+    plt.figure()
+    plt.errorbar(XX[idx], XY[idx], yerr=yerr[idx], fmt=".k", alpha=0.2)
+    plt.errorbar(XX[~idx], XY[~idx], yerr=yerr[~idx], fmt="*r", alpha=0.2)
+    plt.xlabel("$RV_{HARPS}$ [m/s]")
+    plt.ylabel(r"$\Delta RV_L$ [m/s]")
+    plt.savefig('2-correlation_XY.png')
+    plt.show()
 
-plt.figure()
-plt.errorbar(XX[idx], ZX[idx], yerr=yerr[idx], fmt=".k", alpha=0.2)
-plt.errorbar(XX[~idx], ZX[~idx], yerr=yerr[~idx], fmt="*r", alpha=0.2)
-plt.xlabel("$RV_{HARPS}$ [m/s]")
-plt.ylabel("$RV_{FT,H} - RV_{HARPS}$ [m/s]")
-plt.savefig('2-correlation_ZX.png')
-plt.show()
+    plt.figure()
+    plt.errorbar(XX[idx], ZX[idx], yerr=yerr[idx], fmt=".k", alpha=0.2)
+    plt.errorbar(XX[~idx], ZX[~idx], yerr=yerr[~idx], fmt="*r", alpha=0.2)
+    plt.xlabel("$RV_{HARPS}$ [m/s]")
+    plt.ylabel(r"$\Delta RV_H$ [m/s]")
+    plt.savefig('2-correlation_ZX.png')
+    plt.show()
 
-plt.figure()
-plt.errorbar(XY[idx], ZX[idx], yerr=yerr[idx], fmt=".r", alpha=0.2)
-plt.errorbar(XY[~idx], ZX[~idx], yerr=yerr[~idx], fmt="*b", alpha=0.2)
-plt.xlabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
-plt.ylabel("$RV_{FT,H} - RV_{HARPS}$ [m/s]")
-# plt.savefig('2-correlation_XYZ.png')
-plt.show()
+    plt.figure()
+    plt.errorbar(XY[idx], ZX[idx], yerr=yerr[idx], fmt=".k", alpha=0.2)
+    plt.errorbar(XY[~idx], ZX[~idx], yerr=yerr[~idx], fmt="*r", alpha=0.2)
+    plt.xlabel(r"$\Delta RV_L$ [m/s]")
+    plt.ylabel(r"$\Delta RV_H$ [m/s]")
+    # plt.savefig('2-correlation_XYZ.png')
+    plt.show()
 
 
 #==============================================================================
