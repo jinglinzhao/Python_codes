@@ -15,7 +15,7 @@ plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspac
 # fig.add_subplot(111)    # The big subplot
 # plt.axis('off')     # hide frame
 # plt.xticks([])                        # don't want to see any ticks on this axis
-# plt.yticks([])
+plt.yticks([])
 # plt.xlabel("JD - 2,400,000")
 # plt.ylabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
 
@@ -36,8 +36,8 @@ plt.plot(x, mu, color=color)
 plt.xlim(54872, 54962)
 plt.ylim(-3.5, 3.1)
 plt.fill_between(x, mu+std, mu-std, color=color, alpha=0.3, edgecolor="none")
-plt.title('Phase 1: 2009-02-15..2009-05-06')
-# plt.show()
+plt.title('Epoch 1: 2009-02-15..2009-05-06')
+plt.ylabel(r"$\Delta RV_L$ [m/s]")
 
 t 	= np.loadtxt('../data/HD128621/plot/2010/plot_t.txt')
 y 	= np.loadtxt('../data/HD128621/plot/2010/plot_y.txt')
@@ -52,9 +52,23 @@ plt.plot(x, mu, color=color)
 plt.xlim(55273, 55363)
 plt.ylim(-3.5, 3.1)
 plt.fill_between(x, mu+std, mu-std, color=color, alpha=0.3, edgecolor="none")
-plt.title('Phase 2: 2010-03-23..2010-06-12')
-plt.ylabel("$RV_{HARPS} - RV_{FT,L}$ [m/s]")
-# plt.show()
+plt.title('Epoch 2: 2010-03-23..2010-06-12')
+plt.ylabel(r"$\Delta RV_L$ [m/s]")
+
+# ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+# ###########################
+# fig = plt.figure()
+# ax1 = fig.add_subplot(111)
+# ax1.plot(x, y1)
+# ax1.set_ylabel('y1')
+
+# ax2 = ax1.twinx()
+# ax2.plot(x, y2, 'r-')
+# ax2.set_ylabel('y2', color='r')
+# for tl in ax2.get_yticklabels():
+#     tl.set_color('r')
+# ###########################
 
 t 	= np.loadtxt('../data/HD128621/plot/2011/plot_t.txt')
 y 	= np.loadtxt('../data/HD128621/plot/2011/plot_y.txt')
@@ -69,8 +83,9 @@ plt.plot(x, mu, color=color)
 plt.xlim(55608, 55698)
 plt.ylim(-3.5, 3.1)
 plt.fill_between(x, mu+std, mu-std, color=color, alpha=0.3, edgecolor="none")
-plt.title('Phase 3: 2011-02-18..2011-05-15')
+plt.title('Epoch 3: 2011-02-18..2011-05-15')
 plt.xlabel("JD - 2,400,000")
+plt.ylabel(r"$\Delta RV_L$ [m/s]")
 
 plt.savefig('final_plot.png')
 plt.show()
