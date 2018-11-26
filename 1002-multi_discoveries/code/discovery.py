@@ -43,8 +43,8 @@ os.chdir('../output/'+star)
 
 plt.figure()
 # plt.errorbar(t, XX, yerr=yerr, fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
-# plt.errorbar(t, XY, yerr=yerr, fmt=".r", capsize=0, alpha=0.2, label=r'$\Delta RV_L$')
-plt.errorbar(t, ZX, yerr=yerr, fmt=".b", capsize=0, alpha=0.2, label=r'$\Delta RV_H$')
+plt.errorbar(t, XY, yerr=yerr, fmt=".r", capsize=0, alpha=0.2, label=r'$\Delta RV_L$')
+# plt.errorbar(t, ZX, yerr=yerr, fmt=".b", capsize=0, alpha=0.2, label=r'$\Delta RV_H$')
 plt.ylabel("RV [m/s]")
 plt.xlabel("JD - 2,400,000")
 plt.legend()
@@ -108,6 +108,16 @@ plt.errorbar(t[~idx], XX[~idx]-trend(t[~idx]), yerr=yerr[~idx], fmt=".r", capsiz
 plt.legend()
 plt.savefig('1-RV0.png')
 plt.show()
+
+
+# correlation # 
+plt.figure()
+plt.errorbar(FWHM[idx], XX[idx]-trend(t[idx]),  yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2)
+# plt.errorbar(FWHM[~idx], XX[~idx]-trend(t[~idx]),  yerr=yerr[~idx], fmt=".r", capsize=0, alpha=0.2)
+plt.ylabel("RV [m/s]")
+plt.xlabel("FWHM")
+plt.show()
+
 
 plt.figure()
 plt.errorbar(t[idx], XY[idx], yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label=r'$\Delta RV_L$')
@@ -253,8 +263,37 @@ plt.plot(XY[idx], ZX[idx], '.k', markersize=3, alpha=0.3)
 plt.plot(XY[~idx], ZX[~idx], '*r', markersize=3, alpha=0.3)   
 plt.xlabel('$RV_{HARPS} - RV_{FT,L}$ [m/s]')    
 plt.ylabel('$RV_{FT,H} - RV_{HARPS}$ [m/s]')     
-plt.savefig('Correlation.png')   
+# plt.savefig('Correlation.png')   
 plt.show()
+
+
+# Convert the data for GP # 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -372,6 +411,18 @@ plt.ylabel("Power")
 plt.legend()
 plt.savefig('s3-Periodogram.png')
 plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #==============================================================================
