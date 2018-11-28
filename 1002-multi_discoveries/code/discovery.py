@@ -280,10 +280,10 @@ yerr = yerr[idx]
 from george import kernels
 
 # k1 = 1**2 * kernels.ExpSquaredKernel(metric=10**2)
-k2 = 1**2 * kernels.ExpSquaredKernel(80**2) * kernels.ExpSine2Kernel(gamma=8, log_period=np.log(36.2))
+# k2 = 1**2 * kernels.ExpSquaredKernel(80**2) * kernels.ExpSine2Kernel(gamma=8, log_period=np.log(36.2))
 # boundary doesn't seem to take effect
-# k2 = 1**2 * kernels.ExpSquaredKernel(80**2) * kernels.ExpSine2Kernel(gamma=1, log_period=np.log(36.2),
-#                             bounds=dict(gamma=(-3,30), log_period=(np.log(36.2-5),np.log(36.2+6))))
+k2 = 1**2 * kernels.ExpSquaredKernel(80**2) * kernels.ExpSine2Kernel(gamma=11, log_period=np.log(36.2),
+                            bounds=dict(gamma=(-3,30), log_period=(np.log(36.2-5),np.log(36.2+6))))
 # k3 = 0.66**2 * kernels.RationalQuadraticKernel(log_alpha=np.log(0.78), metric=1.2**2)
 # k4 = 1**2 * kernels.ExpSquaredKernel(40**2)
 # kernel = k1 + k2 + k3 + k4
@@ -375,8 +375,6 @@ time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))
 
 
-
-
 #==============================================================================
 # Trace and corner plots 
 #==============================================================================
@@ -455,10 +453,6 @@ plt.title('2010-03-23..2010-06-12')
 # plt.title('2011-02-18..2011-05-15')
 # plt.title('2009-02-15..2009-05-06')
 # plt.savefig(star+'.png')
-# plt.title("Maximum likelihood prediction");
-# plt.savefig('ksiboo-prediction-4.png') 
-# plt.title("sqrt(p) - maximum likelihood prediction");
-# plt.savefig('ksiboo-prediction-4-MCMC.png') 
 plt.show()
 
 np.savetxt('plot_t.txt', t)
