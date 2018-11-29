@@ -172,18 +172,11 @@ x 	= np.loadtxt('../data/HD128621/plot/2009/plot_x.txt')
 mu 	= np.loadtxt('../data/HD128621/plot/2009/plot_mu.txt')
 std = np.loadtxt('../data/HD128621/plot/2009/plot_std.txt')
 
-sl = 1
-fe4376_s    = gaussian_smoothing(JD_wise[idx1], fe4376[idx1], t, sl, np.ones(sum(idx1)))
-log_RHK_s   = gaussian_smoothing(BJD[iddx1], log_RHK[iddx1], t, sl, np.ones(sum(iddx1)))
-BIS_s   = gaussian_smoothing(BJD[iddx1], BIS[iddx1], t, sl, np.ones(sum(iddx1)))
-
-
 plt.subplot(311)
 plt.errorbar(t, y, yerr=yerr, fmt=".k", alpha=0.1, capsize=0)
 # plt.errorbar(BJD[iddx1], (log_RHK[iddx1] - np.mean(log_RHK[iddx1]))*50, yerr=log_RHK_err[iddx1], fmt=".b", capsize=0, alpha=0.2)
 # plt.plot(BJD[iddx1], RV_activity2009 / 4, 'r.')
-plt.plot(JD_wise[idx1], (fe4376[idx1]- np.mean(fe4376[idx1])) *300, 'b.', alpha=0.1)
-plt.plot(t, (fe4376_s - np.mean(fe4376_s)) *300, 'r.')
+# plt.plot(JD_wise[idx1], (fe4376[idx1]- np.mean(fe4376[idx1])) *300, 'b.', alpha=0.1)
 # plt.plot(JD_wise[idx1], (fe5250[idx1]- np.mean(fe5250[idx1])) *800, 'r.', alpha=0.1)
 plt.plot(x, mu, color=color)
 plt.xlim(54872, 54962)
@@ -191,11 +184,6 @@ plt.ylim(-3.5, 3.1)
 plt.fill_between(x, mu+std, mu-std, color=color, alpha=0.3, edgecolor="none")
 plt.title('Epoch 1: 2009-02-15..2009-05-06')
 plt.ylabel(r"$\Delta RV_L$ [m/s]")
-
-if 0:
-    plt.errorbar(fe4376_s, y, yerr, fmt=".k", alpha=0.1)
-    plt.show()
-
 
 ####################
 # Subset 2010 data # 
@@ -212,8 +200,7 @@ plt.subplot(312)
 plt.errorbar(t, y, yerr=yerr, fmt=".k", alpha=0.1, capsize=0)
 # plt.errorbar(BJD[iddx2], (log_RHK[iddx2] - np.mean(log_RHK[iddx2]))*50, yerr=log_RHK_err[iddx2], fmt=".b", capsize=0, alpha=0.2)
 # plt.plot(BJD[iddx2], RV_activity2010 / 4, 'r.')
-plt.plot(JD_wise[idx2], (fe4376[idx2]- np.mean(fe4376[idx2])) *300, 'b.', alpha=0.1)
-plt.plot(t, (fe4376_s - np.mean(fe4376_s)) *300, 'r.')
+# plt.plot(JD_wise[idx2], (fe4376[idx2]- np.mean(fe4376[idx2])) *300, 'b.', alpha=0.1)
 # plt.plot(JD_wise[idx2], (fe5250[idx2]- np.mean(fe5250[idx2])) *800, 'r.', alpha=0.1)
 plt.plot(x, mu, color=color)
 plt.xlim(55273, 55363)
@@ -221,142 +208,6 @@ plt.ylim(-3.5, 3.1)
 plt.fill_between(x, mu+std, mu-std, color=color, alpha=0.3, edgecolor="none")
 plt.title('Epoch 2: 2010-03-23..2010-06-12')
 plt.ylabel(r"$\Delta RV_L$ [m/s]")
-
-if 0:
-    plt.errorbar(fe4376_s, y, yerr, fmt=".k", alpha=0.1)
-    plt.show()
-
-    plt.plot(fe4376_s, y, ".k", alpha=0.1)
-    plt.show()    
-
-    plt.plot(BIS_s, y, ".k", alpha=0.1)
-    plt.show()    
-
-    plt.errorbar(log_RHK_s, y, yerr, fmt=".k", alpha=0.1)
-    plt.show()
-
-    plt.plot(log_RHK_s, y, ".k", alpha=0.1)
-    plt.show()
-
-    plt.plot(log_RHK_s, fe4376_s, '.k', alpha=0.1)
-    plt.xlabel('log_{RHK}_s')
-    plt.ylabel('fe4376_s')
-    # plt.savefig('Correlation-log_{RHK}_s-fe4376_s.png')
-    plt.show()
-
-fe4376_s    = gaussian_smoothing(JD_wise[idx2], fe4376[idx2], t, sl, np.ones(sum(idx2)))
-fe5250_s    = gaussian_smoothing(JD_wise[idx2], fe5250[idx2], t, sl, np.ones(sum(idx2)))
-log_RHK_s   = gaussian_smoothing(BJD[iddx2], log_RHK[iddx2], t, sl, np.ones(sum(iddx2)))
-BIS_s       = gaussian_smoothing(BJD[iddx2], BIS[iddx2], t, sl, np.ones(sum(iddx2)))
-FWHM_s      = gaussian_smoothing(BJD[iddx2], FWHM[iddx2], t, sl, np.ones(sum(iddx2)))
-FTL_s       = gaussian_smoothing(t, y, t, sl, yerr)
-
-#==============================================================================
-# Correlogram
-#==============================================================================
-
-left  = 0.1  # the left side of the subplots of the figure
-right = 0.97    # the right side of the subplots of the figure
-bottom = 0.07   # the bottom of the subplots of the figure
-top = 0.97      # the top of the subplots of the figure
-wspace = 0.05   # the amount of width reserved for blank space between subplots
-hspace = 0.05   # the amount of height reserved for white space between subplots
-
-alpha   = 0.02
-markersize = 15
-
-plt.rcParams.update({'font.size': 16})
-fig, axes = plt.subplots(figsize=(14, 14))
-plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-
-plt.subplot(551)
-plt.plot(FTL_s, log_RHK_s, '.k', markersize=markersize, alpha=alpha)
-plt.ylabel('log $(R^{\'}_{HK})$')
-plt.xticks([])
-#
-fig.add_subplot(5,5,6)
-plt.plot(FTL_s, fe4376_s, '.k', markersize=markersize, alpha=alpha)
-plt.xticks([])
-plt.ylabel('Line core flux') # Fe $4375.9 \AA$
-#
-fig.add_subplot(5,5,11)
-plt.plot(FTL_s, fe5250_s, '.k', markersize=markersize, alpha=alpha)
-plt.xticks([])
-plt.ylabel('Half-depth range') #  Fe $5250.2 \AA$
-#
-fig.add_subplot(5,5,16)
-plt.plot(FTL_s, FWHM_s, '.k', markersize=markersize, alpha=alpha)
-plt.xticks([])
-plt.ylabel('FWHM [km/s]')
-#
-fig.add_subplot(5,5,21)
-plt.plot(FTL_s, BIS_s, '.k', markersize=markersize, alpha=alpha)
-plt.xlabel(r'$\Delta RV_L$ [m/s]')
-plt.ylabel('Bisector [m/s]')
-
-fig.add_subplot(5,5,7)
-plt.plot(log_RHK_s, fe4376_s, '.k', markersize=markersize, alpha=alpha)
-plt.xticks([])
-plt.yticks([])
-#
-fig.add_subplot(5,5,12)
-plt.plot(log_RHK_s, fe5250_s, '.k', markersize=markersize, alpha=alpha)
-plt.xticks([])
-plt.yticks([])
-#
-fig.add_subplot(5,5,17)
-plt.plot(log_RHK_s, FWHM_s, '.k', markersize=markersize, alpha=alpha)
-plt.xticks([])
-plt.yticks([])
-#
-fig.add_subplot(5,5,22)
-plt.plot(log_RHK_s, BIS_s, '.k', markersize=markersize, alpha=alpha)
-plt.xlabel('log $(R^{\'}_{HK})$')
-plt.yticks([])
-
-fig.add_subplot(5,5,13)
-plt.plot(fe4376_s, fe5250_s, '.k', markersize=markersize, alpha=alpha)
-plt.xticks([])
-plt.yticks([])
-#
-fig.add_subplot(5,5,18)
-plt.plot(fe4376_s, FWHM_s, '.k', markersize=markersize, alpha=alpha)
-plt.xticks([])
-plt.yticks([])
-#
-fig.add_subplot(5,5,23)
-plt.plot(fe4376_s, BIS_s, '.k', markersize=markersize, alpha=alpha)
-plt.xlabel('Line core flux')
-plt.yticks([])
-
-fig.add_subplot(5,5,19)
-plt.plot(fe5250_s, FWHM_s, '.k', markersize=markersize, alpha=alpha)
-plt.xticks([])
-plt.yticks([])
-#
-fig.add_subplot(5,5,24)
-plt.plot(fe5250_s, BIS_s, '.k', markersize=markersize, alpha=alpha)
-plt.xlabel('Half-depth range')
-plt.yticks([])
-
-fig.add_subplot(5,5,25)
-plt.plot(FWHM_s, BIS_s, '.k', markersize=markersize, alpha=alpha)
-plt.xlabel('FWHM [km/s]')
-plt.yticks([])
-
-plt.savefig('Correlogram_indicator.png')
-plt.show()
-
-# plt.plot(fe4376_s, log_RHK_s, '.k', markersize=markersize, alpha=alpha)
-# plt.xlabel('Line core flux Fe $4375.9 \AA$')
-# plt.ylabel('log $R^{\'}_{HK}$')    
-
-plt.plot(fe4376_s, FWHM_s, '.k', markersize=markersize, alpha=alpha)
-    
-
-plt.subplot(557)
-
-
 
 
 # ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
@@ -387,7 +238,7 @@ std = np.loadtxt('../data/HD128621/plot/2011/plot_std.txt')
 
 plt.subplot(313)
 plt.errorbar(t, y, yerr=yerr, fmt=".k", alpha=0.1, capsize=0)
-plt.errorbar(BJD[iddx3], (log_RHK[iddx3] - np.mean(log_RHK[iddx3]))*50, yerr=log_RHK_err[iddx3], fmt=".b", capsize=0, alpha=0.2)
+# plt.errorbar(BJD[iddx3], (log_RHK[iddx3] - np.mean(log_RHK[iddx3]))*50, yerr=log_RHK_err[iddx3], fmt=".b", capsize=0, alpha=0.2)
 # plt.plot(BJD[iddx3], RV_activity2011 / 4, 'r.')
 # plt.plot(JD_wise[idx3], (fe4376[idx3]- np.mean(fe4376[idx3])) *300, 'b.', alpha=0.1)
 # plt.plot(JD_wise[idx3], (fe5250[idx3]- np.mean(fe5250[idx3])) *800, 'r.', alpha=0.1)
@@ -402,4 +253,5 @@ plt.ylabel(r"$\Delta RV_L$ [m/s]")
 # plt.savefig('final_plot_FE4376.png')
 # plt.savefig('final_plot_FEfe5250.png')
 # plt.savefig('final_plot_RHK.png')
+plt.savefig('final_plot.png')
 plt.show()
