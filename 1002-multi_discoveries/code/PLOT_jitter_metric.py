@@ -22,11 +22,11 @@ idx3    = (JD_wise < 55698) & (JD_wise > 55608)
 file    = '../data/HD128621/Alpha_Cen_B_supplementary_data.txt'
 data    = np.loadtxt(file)
 BJD     = data[:,0]
+BIS     = data[:,4] * 1000 # m/s
+FWHM    = data[:,5] # km/s
 log_RHK = data[:,7]
 log_RHK_err = data[:,8]
 RHK_l   = data[:,9]
-BIS     = data[:,4] * 1000 # m/s
-FWHM    = data[:,5] # km/s
 iddx1   = (BJD < 54962) & (BJD > 54872)
 iddx2   = (BJD < 55363) & (BJD > 55273)
 iddx3   = (BJD < 55698) & (BJD > 55608)
@@ -168,7 +168,7 @@ color = "#ff7f0e"
 t 	= np.loadtxt('../data/HD128621/plot/2009/plot_t.txt') + 0.5
 y 	= np.loadtxt('../data/HD128621/plot/2009/plot_y.txt')
 yerr = np.loadtxt('../data/HD128621/plot/2009/plot_yerr.txt')
-x 	= np.loadtxt('../data/HD128621/plot/2009/plot_x.txt')
+x 	= np.loadtxt('../data/HD128621/plot/2009/plot_x.txt') + 0.5
 mu 	= np.loadtxt('../data/HD128621/plot/2009/plot_mu.txt')
 std = np.loadtxt('../data/HD128621/plot/2009/plot_std.txt')
 
@@ -192,7 +192,7 @@ plt.ylabel(r"$\Delta RV_L$ [m/s]")
 t 	= np.loadtxt('../data/HD128621/plot/2010/plot_t.txt') + 0.5
 y 	= np.loadtxt('../data/HD128621/plot/2010/plot_y.txt')
 yerr = np.loadtxt('../data/HD128621/plot/2010/plot_yerr.txt')
-x 	= np.loadtxt('../data/HD128621/plot/2010/plot_x.txt')
+x 	= np.loadtxt('../data/HD128621/plot/2010/plot_x.txt') + 0.5
 mu 	= np.loadtxt('../data/HD128621/plot/2010/plot_mu.txt')
 std = np.loadtxt('../data/HD128621/plot/2010/plot_std.txt')
 
@@ -232,7 +232,7 @@ plt.ylabel(r"$\Delta RV_L$ [m/s]")
 t 	= np.loadtxt('../data/HD128621/plot/2011/plot_t.txt') + 0.5
 y 	= np.loadtxt('../data/HD128621/plot/2011/plot_y.txt')
 yerr = np.loadtxt('../data/HD128621/plot/2011/plot_yerr.txt')
-x 	= np.loadtxt('../data/HD128621/plot/2011/plot_x.txt')
+x 	= np.loadtxt('../data/HD128621/plot/2011/plot_x.txt') + 0.5
 mu 	= np.loadtxt('../data/HD128621/plot/2011/plot_mu.txt')
 std = np.loadtxt('../data/HD128621/plot/2011/plot_std.txt')
 
@@ -250,8 +250,8 @@ plt.title('Epoch 3: 2011-02-18..2011-05-15')
 plt.xlabel("JD - 2,400,000")
 plt.ylabel(r"$\Delta RV_L$ [m/s]")
 
-# plt.savefig('final_plot_FE4376.png')
-# plt.savefig('final_plot_FEfe5250.png')
-# plt.savefig('final_plot_RHK.png')
-plt.savefig('final_plot.png')
+# plt.savefig('../output/HD128621/final_plot_FE4376.png')
+# plt.savefig('../output/HD128621/final_plot_FEfe5250.png')
+# plt.savefig('../output/HD128621/final_plot_RHK.png')
+plt.savefig('../output/HD128621/final_plot.png')
 plt.show()
