@@ -1,15 +1,17 @@
+# Change the year accordingly 
+
 import numpy as np
 import matplotlib.pyplot as plt
 from functions import gaussian_smoothing
 
-
 #==============================================================================
 # import my jitter metric 
 #==============================================================================
+YEAR = 2010
 
-t 	= np.loadtxt('../data/HD128621/plot/2010/plot_t.txt') + 0.5
-y 	= np.loadtxt('../data/HD128621/plot/2010/plot_y.txt')
-yerr = np.loadtxt('../data/HD128621/plot/2010/plot_yerr.txt')
+t 		= np.loadtxt('../data/HD128621/plot/' + str(YEAR) + '/plot_t.txt') + 0.5 	# JD - 2,400,000
+y 		= np.loadtxt('../data/HD128621/plot/' + str(YEAR) + '/plot_y.txt')
+yerr 	= np.loadtxt('../data/HD128621/plot/' + str(YEAR) + '/plot_yerr.txt')
 
 #==============================================================================
 # import the wise data 
@@ -31,11 +33,11 @@ idx3    = (JD_wise < 55698) & (JD_wise > 55608)
 file    = '../data/HD128621/Alpha_Cen_B_supplementary_data.txt'
 data    = np.loadtxt(file)
 BJD     = data[:,0]
+BIS     = data[:,4] * 1000 # m/s
+FWHM    = data[:,5] # km/s
 log_RHK = data[:,7]
 log_RHK_err = data[:,8]
 RHK_l   = data[:,9]
-BIS     = data[:,4] * 1000 # m/s
-FWHM    = data[:,5] # km/s
 iddx1   = (BJD < 54962) & (BJD > 54872)
 iddx2   = (BJD < 55363) & (BJD > 55273)
 iddx3   = (BJD < 55698) & (BJD > 55608)
@@ -44,15 +46,23 @@ iddx3   = (BJD < 55698) & (BJD > 55608)
 # Align the data using a moving average
 #==============================================================================
 
-sl = 1
+sl 		= 0.5
+if YEAR == 2009:
+    idx     = idx1
+    iddx    = iddx1
+if YEAR == 2010:
+    idx 	= idx2 
+    iddx 	= iddx2
+if YEAR == 2011:
+    idx 	= idx3
+    iddx 	= iddx3
 
-fe4376_s    = gaussian_smoothing(JD_wise[idx2], fe4376[idx2], t, sl, np.ones(sum(idx2)))
-fe5250_s    = gaussian_smoothing(JD_wise[idx2], fe5250[idx2], t, sl, np.ones(sum(idx2)))
-log_RHK_s   = gaussian_smoothing(BJD[iddx2], log_RHK[iddx2], t, sl, np.ones(sum(iddx2)))
-BIS_s       = gaussian_smoothing(BJD[iddx2], BIS[iddx2], t, sl, np.ones(sum(iddx2)))
-FWHM_s      = gaussian_smoothing(BJD[iddx2], FWHM[iddx2], t, sl, np.ones(sum(iddx2)))
+fe4376_s    = gaussian_smoothing(JD_wise[idx], fe4376[idx], t, sl, np.ones(sum(idx)))
+fe5250_s    = gaussian_smoothing(JD_wise[idx], fe5250[idx], t, sl, np.ones(sum(idx)))
+log_RHK_s   = gaussian_smoothing(BJD[iddx], log_RHK[iddx], t, sl, np.ones(sum(iddx)))
+BIS_s       = gaussian_smoothing(BJD[iddx], BIS[iddx], t, sl, np.ones(sum(iddx)))
+FWHM_s      = gaussian_smoothing(BJD[iddx], FWHM[iddx], t, sl, np.ones(sum(iddx)))
 FTL_s       = gaussian_smoothing(t, y, t, sl, yerr)
-
 
 #==============================================================================
 # Correlogram
@@ -147,5 +157,5 @@ plt.plot(FWHM_s, BIS_s, '.k', markersize=markersize, alpha=alpha)
 plt.xlabel('FWHM [km/s]')
 plt.yticks([])
 
-plt.savefig('Correlogram_indicator.png')
+plt.savefig('../output/HD128621/Correlogram_indicator_' + str(YEAR) + '.png')
 plt.show()
