@@ -55,7 +55,6 @@ y 		= np.loadtxt('../data/HD128621/plot/' + str(YEAR) + '/plot_y.txt')
 yerr 	= np.loadtxt('../data/HD128621/plot/' + str(YEAR) + '/plot_yerr.txt')
 
 
-
 #==============================================================================
 # import the wise data 
 #==============================================================================
@@ -115,8 +114,16 @@ RV_s        = gaussian_smoothing(t, RV_no_binary, t, sl, yerr)
 if 0: # visualize the binary removal
     # plt.plot(t, RV_HARPS[idx_HARPS] - np.mean(RV_HARPS[idx_HARPS]), 'k.', alpha = 0.1)
     plt.plot(t, RV_s - np.mean(RV_s), 'b.')
-    plt.plot(t, RV_no_binary - np.mean(RV_no_binary), 'b.', alpha=0.1)
-    plt.plot(t, FTL_s, 'r.', alpha=0.5)
+
+    idxx1 = t<55310
+    idxx2 = (t>55310) & (t<55343)
+    idxx3 = t>55343    
+
+    RV_nbm = RV_no_binary - np.mean(RV_no_binary)
+    plt.plot(t[idxx1], RV_nbm[idxx1], 'k.', alpha=0.1)
+    plt.plot(t[idxx2], RV_nbm[idxx2], 'b.', alpha=0.1)
+    plt.plot(t[idxx3], RV_nbm[idxx3], 'r.', alpha=0.1)
+    plt.plot(t, y, 'g.', alpha=0.05)
     plt.show()
 
 #==============================================================================
