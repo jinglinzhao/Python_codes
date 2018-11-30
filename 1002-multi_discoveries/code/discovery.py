@@ -17,7 +17,7 @@ plt.rcParams.update({'font.size': 14})
 DIR     = '/Volumes/DataSSD/OneDrive - UNSW/Hermite_Decomposition/ESO_HARPS/' + star
 # DIR     = '/run/user/1000/gvfs/sftp:host=durufle.phys.unsw.edu.au,user=jzhao/Volumes/DataSSD/OneDrive - UNSW/Hermite_Decomposition/ESO_HARPS/' + star
 t 		= np.loadtxt(DIR + '/MJD.dat')
-XX 		= np.loadtxt(DIR + '/RV_HARPS.dat')
+XX      = np.loadtxt(DIR + '/RV_HARPS.dat')
 XX 		= (XX - np.mean(XX)) * 1000
 yerr 	= np.loadtxt(DIR + '/RV_noise.dat') #m/s
 FWHM    = np.loadtxt(DIR + '/FWHM.dat')
@@ -71,12 +71,13 @@ plt.xlabel("FWHM")
 plt.savefig('0-correlation_XY.png')
 plt.show()
 
-# plt.figure()
-# plt.plot(FWHM[idx], XY[idx], ".k", alpha=0.2)
-# plt.plot(FWHM[~idx], XY[~idx], ".b", alpha=0.2)
-# plt.ylabel(r'$\Delta RV_L$ [m/s]')
-# plt.xlabel("FWHM")
-# plt.show()
+if 0:
+    plt.figure()
+    plt.plot(FWHM[idx], XY[idx], ".k", alpha=0.2)
+    plt.plot(FWHM[~idx], XY[~idx], ".b", alpha=0.2)
+    plt.ylabel(r'$\Delta RV_L$ [m/s]')
+    plt.xlabel("FWHM")
+    plt.show()
 
 plt.figure()
 plt.errorbar(FWHM[idx], ZX[idx], yerr=yerr[idx], fmt=".k", alpha=0.2)
@@ -101,11 +102,15 @@ lin1 = -0.5305
 def trend(x):
     return lin0 + lin1 * (x-BJD0)
 
+
 plt.figure()
 # plt.errorbar(t[idx], XX[idx], yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
+# plt.errorbar(t[idx], trend(t[idx]), yerr=yerr[idx], fmt=".b", capsize=0, alpha=0.2, label='model')
 # plt.errorbar(t[~idx], XX[~idx], yerr=yerr[~idx], fmt="*r", capsize=0, alpha=0.2, label='$RV_{HARPS}$ outlier')
 plt.errorbar(t[idx], XX[idx]-trend(t[idx]), yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label=r'$RV_{HARPS}$')
-plt.errorbar(t[~idx], XX[~idx]-trend(t[~idx]), yerr=yerr[~idx], fmt=".r", capsize=0, alpha=0.2, label=r'$RV_{HARPS}$ outlier')
+plt.errorbar(t[idx], YY[idx]-trend(t[idx]),  yerr=yerr[idx], fmt=".r", capsize=0, alpha=0.1)
+plt.errorbar(t[idx], ZZ[idx]-trend(t[idx]),  yerr=yerr[idx], fmt=".b", capsize=0, alpha=0.1)
+# plt.errorbar(t[~idx], XX[~idx]-trend(t[~idx]), yerr=yerr[~idx], fmt=".r", capsize=0, alpha=0.2, label=r'$RV_{HARPS}$ outlier')
 plt.legend()
 plt.savefig('1-RV0.png')
 plt.show()
@@ -180,19 +185,19 @@ fig, axes = plt.subplots(1, 3, figsize=(20, 5))
 plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
 
 plt.subplot(151)
-plt.plot(XX[idx]-trend(t[idx]), YY[idx]-trend(t[idx]), '.k', markersize=3, alpha=0.3)
+plt.plot(XX[idx]-P.polyval(t[idx], c)-np.mean(XX[idx]-P.polyval(t[idx], c)), YY[idx]-P.polyval(t[idx], c)-np.mean(YY[idx]-P.polyval(t[idx], c)), '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), YY[~idx], '*r', markersize=3, alpha=0.3)
 plt.xlabel(r'$RV_{HARPS}$ [m/s]')
 plt.ylabel(r'$RV_{FT,L}$ [m/s]')    
 
 plt.subplot(152)
-plt.plot(XX[idx]-trend(t[idx]), ZZ[idx]-trend(t[idx]), '.k', markersize=3, alpha=0.3)
+plt.plot(XX[idx]-P.polyval(t[idx], c)-np.mean(XX[idx]-P.polyval(t[idx], c)), ZZ[idx]-P.polyval(t[idx], c)-np.mean(ZZ[idx]-P.polyval(t[idx], c)), '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), ZZ[~idx], '*r', markersize=3, alpha=0.3)
 plt.xlabel(r'$RV_{HARPS}$ [m/s]')
 plt.ylabel(r'$RV_{FT,H}$ [m/s]')        
 
 plt.subplot(153)
-plt.plot(XX[idx]-trend(t[idx]), XY[idx], '.k', markersize=3, alpha=0.3)
+plt.plot(XX[idx]-P.polyval(t[idx], c)-np.mean(XX[idx]-P.polyval(t[idx], c)), XY[idx], '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), XY[~idx], '*r', markersize=3, alpha=0.3)
 plt.xlabel(r'$RV_{HARPS}$ [m/s]')
 plt.ylabel(r'$\Delta RV_L$ [m/s]')
@@ -201,7 +206,7 @@ plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
 # plt.title(r'$\alpha$' + ' Centauri B 2009-02-15..2009-05-06')
 
 plt.subplot(154)
-plt.plot(XX[idx]-trend(t[idx]), ZX[idx], '.k', markersize=3, alpha=0.3)
+plt.plot(XX[idx]-P.polyval(t[idx], c)-np.mean(XX[idx]-P.polyval(t[idx], c)), ZX[idx], '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), ZX[~idx], '*r', markersize=3, alpha=0.3)   
 plt.xlabel(r'$RV_{HARPS}$ [m/s]')
 plt.ylabel(r'$\Delta RV_H$ [m/s]')
@@ -215,6 +220,72 @@ plt.xlabel(r'$\Delta RV_L$ [m/s]')
 plt.ylabel(r'$\Delta RV_H$ [m/s]')     
 # plt.savefig('Correlation.png')   
 plt.show()
+
+
+
+
+left  = 0.05  # the left side of the subplots of the figure
+right = 0.95    # the right side of the subplots of the figure
+bottom = 0.15   # the bottom of the subplots of the figure
+top = 0.9      # the top of the subplots of the figure
+wspace = 0.4   # the amount of width reserved for blank space between subplots
+hspace = 0.2   # the amount of height reserved for white space between subplots
+
+plt.rcParams.update({'font.size': 16})
+fig, axes = plt.subplots(1, 3, figsize=(20, 5))
+plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+
+idxx1 = t[idx] < 55310
+idxx2 = (t[idx] > 55310) & (t[idx] < 55343)
+idxx3 = t[idx] > 55343
+
+xxx = XX[idx]-P.polyval(t[idx], c) - np.mean(XX[idx]-P.polyval(t[idx], c))
+yyy = YY[idx]-P.polyval(t[idx], c) - np.mean(YY[idx]-P.polyval(t[idx], c))
+zzz = ZZ[idx]-P.polyval(t[idx], c) - np.mean(ZZ[idx]-P.polyval(t[idx], c))
+
+plt.subplot(151)
+plt.plot(xxx[idxx1], yyy[idxx1], '.k', markersize=3, alpha=0.1)
+plt.plot(xxx[idxx2], yyy[idxx2], '.b', markersize=3, alpha=0.1)
+plt.plot(xxx[idxx3], yyy[idxx3], '.r', markersize=3, alpha=0.1)
+plt.xlabel(r'$RV_{HARPS}$ [m/s]')
+plt.ylabel(r'$RV_{FT,L}$ [m/s]')    
+
+plt.subplot(152)
+plt.plot(xxx[idxx1], zzz[idxx1], '.k', markersize=3, alpha=0.1)
+plt.plot(xxx[idxx2], zzz[idxx2], '.b', markersize=3, alpha=0.1)
+plt.plot(xxx[idxx3], zzz[idxx3], '.r', markersize=3, alpha=0.1)
+plt.xlabel(r'$RV_{HARPS}$ [m/s]')
+plt.ylabel(r'$RV_{FT,H}$ [m/s]')        
+
+plt.subplot(153)
+plt.plot(xxx[idxx1], XY[idx][idxx1], '.k', markersize=3, alpha=0.1)
+plt.plot(xxx[idxx2], XY[idx][idxx2], '.b', markersize=3, alpha=0.1)
+plt.plot(xxx[idxx3], XY[idx][idxx3], '.r', markersize=3, alpha=0.1)
+plt.xlabel(r'$RV_{HARPS}$ [m/s]')
+plt.ylabel(r'$\Delta RV_L$ [m/s]')
+plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
+# plt.title(r'$\alpha$' + ' Centauri B 2011-02-18..2011-05-15')
+# plt.title(r'$\alpha$' + ' Centauri B 2009-02-15..2009-05-06')
+
+plt.subplot(154)
+plt.plot(xxx[idxx1], ZX[idx][idxx1], '.k', markersize=3, alpha=0.1)
+plt.plot(xxx[idxx2], ZX[idx][idxx2], '.b', markersize=3, alpha=0.1)
+plt.plot(xxx[idxx3], ZX[idx][idxx3], '.r', markersize=3, alpha=0.1)
+plt.xlabel(r'$RV_{HARPS}$ [m/s]')
+plt.ylabel(r'$\Delta RV_H$ [m/s]')
+
+plt.subplot(155)
+# fit = np.polyfit(XY, ZX, 1)
+# x_sample = np.linspace(min(XY)*1.2, max(XY)*1.2, num=100, endpoint=True)
+plt.plot(XY[idx][idxx1], ZX[idx][idxx1], '.k', markersize=3, alpha=0.1)
+plt.plot(XY[idx][idxx2], ZX[idx][idxx2], '.b', markersize=3, alpha=0.1)
+plt.plot(XY[idx][idxx3], ZX[idx][idxx3], '.r', markersize=3, alpha=0.1)
+plt.xlabel(r'$\Delta RV_L$ [m/s]')    
+plt.ylabel(r'$\Delta RV_H$ [m/s]')     
+# plt.savefig('Correlation.png')   
+plt.show()
+
+
 
 
 #==============================================================================
