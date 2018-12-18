@@ -1,3 +1,7 @@
+'''
+Jitter metrics of 2009 - 2011
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 from functions import gaussian_smoothing

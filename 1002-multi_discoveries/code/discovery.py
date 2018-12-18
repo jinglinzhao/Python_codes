@@ -18,7 +18,8 @@ DIR     = '/Volumes/DataSSD/OneDrive - UNSW/Hermite_Decomposition/ESO_HARPS/' + 
 # DIR     = '/run/user/1000/gvfs/sftp:host=durufle.phys.unsw.edu.au,user=jzhao/Volumes/DataSSD/OneDrive - UNSW/Hermite_Decomposition/ESO_HARPS/' + star
 t 		= np.loadtxt(DIR + '/MJD.dat')
 XX      = np.loadtxt(DIR + '/RV_HARPS.dat')
-XX 		= (XX - np.mean(XX)) * 1000
+XX      = XX * 1000
+# XX 		= (XX - np.mean(XX)) * 1000
 yerr 	= np.loadtxt(DIR + '/RV_noise.dat') #m/s
 FWHM    = np.loadtxt(DIR + '/FWHM.dat')
 
@@ -89,10 +90,11 @@ plt.show()
 
 
 # Binary orbit (without fitting planet) # 
-lin0 = -22700.1747+22720.110791117946
+# email correspondence with Dumusque
+lin0 = -22700.1747
 lin1 = -0.5307
 lin2 = -1.83e-5
-BJD0 = 55278.739366
+BJD0 = 55279.109840075726
 def trend(x):
     return lin0 + lin1 * (x-BJD0) + lin2 * (x-BJD0)**2
 
@@ -104,17 +106,27 @@ def trend(x):
 
 
 plt.figure()
-# plt.errorbar(t[idx], XX[idx], yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
-# plt.errorbar(t[idx], trend(t[idx]), yerr=yerr[idx], fmt=".b", capsize=0, alpha=0.2, label='model')
+plt.errorbar(t[idx], XX[idx], yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
+plt.errorbar(t[idx], trend(t[idx]), yerr=yerr[idx], fmt=".b", capsize=0, alpha=0.2, label='model')
 # plt.errorbar(t[~idx], XX[~idx], yerr=yerr[~idx], fmt="*r", capsize=0, alpha=0.2, label='$RV_{HARPS}$ outlier')
-plt.errorbar(t[idx], XX[idx]-trend(t[idx]), yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label=r'$RV_{HARPS}$')
-plt.errorbar(t[idx], YY[idx]-trend(t[idx]),  yerr=yerr[idx], fmt=".r", capsize=0, alpha=0.1)
-plt.errorbar(t[idx], ZZ[idx]-trend(t[idx]),  yerr=yerr[idx], fmt=".b", capsize=0, alpha=0.1)
+# plt.errorbar(t[idx], XX[idx]-trend(t[idx]), yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label=r'$RV_{HARPS}$')
+# plt.errorbar(t[idx], YY[idx]-trend(t[idx]),  yerr=yerr[idx], fmt=".r", capsize=0, alpha=0.1)
+# plt.errorbar(t[idx], ZZ[idx]-trend(t[idx]),  yerr=yerr[idx], fmt=".b", capsize=0, alpha=0.1)
 # plt.errorbar(t[~idx], XX[~idx]-trend(t[~idx]), yerr=yerr[~idx], fmt=".r", capsize=0, alpha=0.2, label=r'$RV_{HARPS}$ outlier')
 plt.legend()
 plt.savefig('1-RV0.png')
 plt.show()
 
+
+fig, axes = plt.subplots(figsize=(20, 5))
+plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+# plt.errorbar(t[idx], xxx, yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
+plt.errorbar(t[idx], XX[idx] - trend(t[idx]), yerr=yerr[idx], fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
+plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
+plt.ylabel("RV [m/s]")
+plt.xlabel("JD - 2,400,000")
+plt.savefig('AlphaCen2010.png')
+plt.show()
 
 # correlation # 
 plt.figure()
@@ -218,7 +230,7 @@ plt.plot(XY[idx], ZX[idx], '.k', markersize=3, alpha=0.3)
 # plt.plot(XY[~idx], ZX[~idx], '*r', markersize=3, alpha=0.3)   
 plt.xlabel(r'$\Delta RV_L$ [m/s]')    
 plt.ylabel(r'$\Delta RV_H$ [m/s]')     
-# plt.savefig('Correlation.png')   
+plt.savefig('Correlation.png')   
 plt.show()
 
 
