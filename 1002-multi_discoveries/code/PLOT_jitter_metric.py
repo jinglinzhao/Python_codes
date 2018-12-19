@@ -42,6 +42,9 @@ if 0:
     plt.plot(BJD, BIS, '.k', alpha=0.2)
     plt.show()
 
+
+
+
 lin0        = -22700.1747
 lin1        = -0.5307
 lin2        = -1.83e-5
