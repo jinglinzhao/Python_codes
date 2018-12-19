@@ -33,6 +33,15 @@ idx3_HARPS	= (t < 55698) & (t > 55608)
 from numpy.polynomial import polynomial as P
 c, stats    = P.polyfit(t, RV_HARPS, 2, full=True, w = 1/yerr**2)
 
+# Binary orbit (without fitting planet) # 
+# email correspondence with Dumusque
+lin0 = -22700.1747
+lin1 = -0.5307
+lin2 = -1.83e-5
+BJD0 = 55279.109840075726
+def trend(x):
+    return lin0 + lin1 * (x-BJD0) + lin2 * (x-BJD0)**2
+
 if 0: # visualize the fitting 
 	x_fit       = np.linspace(min(t-1), max(t+1), 10000)
 	y_fit       = P.polyval(x_fit, c)
@@ -41,14 +50,18 @@ if 0: # visualize the fitting
 	plt.show()
 
 y_fitt = P.polyval(t, c)
-# plt.errorbar(t, RV_HARPS-y_fitt, yerr=yerr, fmt=".k", capsize=0, alpha=0.2)
-# plt.show()
+if 0: 
+    plt.errorbar(t, RV_HARPS-y_fitt, yerr=yerr, fmt=".k", capsize=0, alpha=0.2)
+    plt.show()
+
+    plt.errorbar(t, RV_HARPS-trend(t), yerr=yerr, fmt=".k", capsize=0, alpha=0.2)
+    plt.show()
 
 
 #==============================================================================
 # import my jitter metric 
 #==============================================================================
-YEAR = 2010
+YEAR = 2011
 
 t 		= np.loadtxt('../data/HD128621/plot/' + str(YEAR) + '/plot_t.txt') + 0.5 	# JD - 2,400,000
 y 		= np.loadtxt('../data/HD128621/plot/' + str(YEAR) + '/plot_y.txt')
@@ -108,7 +121,8 @@ log_RHK_s   = gaussian_smoothing(BJD[iddx], log_RHK[iddx], t, sl, np.ones(sum(id
 BIS_s       = gaussian_smoothing(BJD[iddx], BIS[iddx], t, sl, np.ones(sum(iddx)))
 FWHM_s      = gaussian_smoothing(BJD[iddx], FWHM[iddx], t, sl, np.ones(sum(iddx)))
 FTL_s       = gaussian_smoothing(t, y, t, sl, yerr)
-RV_no_binary= RV_HARPS[idx_HARPS] - P.polyval(t, c)
+# RV_no_binary= RV_HARPS[idx_HARPS] - P.polyval(t, c)
+RV_no_binary= RV_HARPS[idx_HARPS] - trend(t)
 RV_s        = gaussian_smoothing(t, RV_no_binary, t, sl, yerr)
 
 if 0: # visualize the binary removal
