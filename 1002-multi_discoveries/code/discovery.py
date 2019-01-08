@@ -16,7 +16,7 @@ plt.rcParams.update({'font.size': 14})
 
 DIR     = '/Volumes/DataSSD/OneDrive - UNSW/Hermite_Decomposition/ESO_HARPS/' + star
 # DIR     = '/run/user/1000/gvfs/sftp:host=durufle.phys.unsw.edu.au,user=jzhao/Volumes/DataSSD/OneDrive - UNSW/Hermite_Decomposition/ESO_HARPS/' + star
-t 		= np.loadtxt(DIR + '/MJD.dat')
+t 		= np.loadtxt(DIR + '/MJD.dat') + 0.5
 XX      = np.loadtxt(DIR + '/RV_HARPS.dat')
 XX      = XX * 1000
 # XX 		= (XX - np.mean(XX)) * 1000
