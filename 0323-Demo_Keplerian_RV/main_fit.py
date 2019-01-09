@@ -10,7 +10,9 @@ from rv_fit import *
 plt.close('all')
 # Load the data file in here
 # Pass the file name of the data file to the load_single_star function
-star= load_single_star('hd10442.dat')
+# star= load_single_star('hd10442.dat')
+# star= load_single_star('hd5319.dat')
+star= load_single_star('HD103720.txt')
 
 # You now have a star object
 # Print out the star's name and mass
