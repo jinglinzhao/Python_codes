@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'''
+Conclusion: 
+rms = 11.815 m/s
+wrms = 11.492 m/s
+not as good as letting m as a free parameter
+'''
 
 #==============================================================================
 # Import data 
@@ -11,6 +17,11 @@ DIR     = '/Volumes/DataSSD/OneDrive - UNSW/Hermite_Decomposition/ESO_HARPS/' + 
 MJD     = np.loadtxt(DIR + '/MJD.dat')
 RV_HARPS= np.loadtxt(DIR + '/RV_HARPS.dat') * 1000
 RV_noise= np.loadtxt(DIR + '/RV_noise.dat')
+
+DIR2    = '/Volumes/DataSSD/MATLAB_codes/0816-FT-multiple_stars/' + star + '/'
+GG      = np.loadtxt(DIR2 + 'GG.txt')
+YY      = np.loadtxt(DIR2 + 'YY.txt')
+jitter  = GG - YY
 
 # convert to x, y, yerr
 x       = MJD
@@ -37,7 +48,7 @@ class Model(Model):
         f       = 2*np.arctan( np.sqrt((1+self.e0)/(1-self.e0))*np.tan(e_anom*.5) )
         rv      = self.k * (np.cos(f + self.w) + self.e0*np.cos(self.w))
 
-        return rv + self.offset
+        return rv + self.offset + 4*jitter
 
 # The dict() constructor builds dictionaries directly from sequences of key-value pairs:
 P       = 4.5557
@@ -108,7 +119,6 @@ print("Running production...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
 sampler.run_mcmc(p0, 3000);    
 
-
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))
 
@@ -120,7 +130,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-log_samples         = sampler.chain[:, 12000:, :].reshape((-1, ndim))
+log_samples         = sampler.chain[:, 9000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(log_samples)
 
 
@@ -158,22 +168,21 @@ aa[2,:] = [a2[i] for i in range(3)]
 aa[3,:] = [a3[i] for i in range(3)]
 aa[4,:] = [a4[i] for i in range(3)]
 aa[5,:] = [a5[i] for i in range(3)]
-np.savetxt('../../output/HD103720/103720_MCMC_result.txt', aa, fmt='%.6f')
+np.savetxt('103720_MCMC_result.txt', aa, fmt='%.6f')
 
 
 P, tau, k, w, e0, offset = aa[:,0]
 fit_curve = Model(P=P, tau=tau, k=k, w=w, e0=e0, offset=offset)
-t_fit   = np.linspace(min(x)-20, max(x), num=10001, endpoint=True)
-y_fit   = fit_curve.get_value(np.array(t_fit))
+y_fit   = fit_curve.get_value(np.array(x))
 
 
 plt.figure()
-plt.plot(t_fit, y_fit, label='MCMC fit')
-plt.errorbar(x,   y,    yerr=yerr,   fmt=".", capsize=0, label='HARPS')
+plt.errorbar(x, y_fit, yerr=yerr, fmt=".", capsize=0, label='MCMC fit')
+plt.errorbar(x,   y,   yerr=yerr,   fmt=".", capsize=0, label='HARPS')
 plt.ylabel("RV [m/s]")
 plt.xlabel("MJD")
 plt.legend(loc="upper center")
-plt.savefig('../../output/HD103720/103720_MCMC_fit.png')
+plt.savefig('../../103720_MCMC_fit.png')
 plt.show()
 
 companion   = fit_curve.get_value(np.array(x))
@@ -190,24 +199,15 @@ plt.errorbar(x, residual, yerr=yerr, fmt=".", capsize=0, label='HARPS', alpha=0.
 plt.ylabel("Residual [m/s]")
 plt.xlabel("MJD [day]")
 plt.legend(loc="upper center")
-plt.savefig('../../output/HD103720/103720_residual.png')
+plt.savefig('../../103720_residual.png')
 plt.show()
 
-# np.savetxt('/Volumes/DataSSD/MATLAB_codes/0816-FT-multiple_stars/' + star + '/BI.txt', companion)
 
 
-if 0:
-    inds = np.random.randint(len(log_samples), size=100)
-    plt.figure()
-    for ind in inds:
-        sample = log_samples[ind]
-        fit_curve = Model(P=sample[0], tau=sample[1], k=sample[2], w=sample[3], e0=sample[4], off_aat=sample[5],
-                     off_chiron=sample[6], off_feros=sample[7], off_mj1=sample[8], off_mj3=sample[9])
-        y_fit   = fit_curve.get_value(np.array(t_fit))
-        plt.plot(t_fit, y_fit, "g", alpha=0.1)
-    plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
-    plt.ylabel("RV [m/s]")
-    plt.xlabel("Shifted JD [d]")
-    plt.savefig('76920_MCMC_5sets-4-MCMC_100_realizations.png')
-    # plt.close()
+
+
+
+
+
+
 

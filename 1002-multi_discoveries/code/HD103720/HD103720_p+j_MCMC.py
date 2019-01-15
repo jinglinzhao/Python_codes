@@ -12,6 +12,11 @@ MJD     = np.loadtxt(DIR + '/MJD.dat')
 RV_HARPS= np.loadtxt(DIR + '/RV_HARPS.dat') * 1000
 RV_noise= np.loadtxt(DIR + '/RV_noise.dat')
 
+DIR2    = '/Volumes/DataSSD/MATLAB_codes/0816-FT-multiple_stars/' + star + '/'
+GG      = np.loadtxt(DIR2 + 'GG.txt')
+YY      = np.loadtxt(DIR2 + 'YY.txt')
+jitter  = GG - YY
+
 # convert to x, y, yerr
 x       = MJD
 y       = RV_HARPS - np.mean(RV_HARPS)
@@ -29,7 +34,7 @@ import math
 
 
 class Model(Model):
-    parameter_names = ('P', 'tau', 'k', 'w', 'e0', 'offset')
+    parameter_names = ('P', 'tau', 'k', 'w', 'e0', 'offset', 'm')
 
     def get_value(self, t):
         M_anom  = 2*np.pi/self.P * (t - self.tau)
@@ -37,7 +42,7 @@ class Model(Model):
         f       = 2*np.arctan( np.sqrt((1+self.e0)/(1-self.e0))*np.tan(e_anom*.5) )
         rv      = self.k * (np.cos(f + self.w) + self.e0*np.cos(self.w))
 
-        return rv + self.offset
+        return rv + self.offset + self.m * jitter
 
 # The dict() constructor builds dictionaries directly from sequences of key-value pairs:
 P       = 4.5557
@@ -46,8 +51,9 @@ e       = 0.086
 offset  = 0.
 k       = 89
 w       = 262 / 360 * 2 * np.pi
+m       = 5
 
-guess   = dict(P=P, tau=tau, k=k, w=w, e0=e, offset=offset)
+guess   = dict(P=P, tau=tau, k=k, w=w, e0=e, offset=offset, m=m)
 
 
 #==============================================================================
@@ -60,15 +66,15 @@ guess   = dict(P=P, tau=tau, k=k, w=w, e0=e, offset=offset)
 # As prior, we assume an 'uniform' prior (i.e. constant prob. density)
 
 def lnprior(theta):
-    P, tau, k, w, e0, offset = theta
-    if (4.4 < P < 4.7) and (80 < k < 100) and (0 < w < 2*np.pi) and (0. < e0 < 0.15):
+    P, tau, k, w, e0, offset, m = theta
+    if (4.4 < P < 4.7) and (80 < k < 100) and (0 < w < 2*np.pi) and (0. < e0 < 0.15) and (1 < m < 8):
         return 0.0
     return -np.inf
 
 # As likelihood, we assume the chi-square. Note: we do not even need to normalize it.
 def lnlike(theta, x, y, yerr):
-    P, tau, k, w, e0, offset = theta
-    fit_curve   = Model(P=P, tau=tau, k=k, w=w, e0=e0, offset=offset)
+    P, tau, k, w, e0, offset, m = theta
+    fit_curve   = Model(P=P, tau=tau, k=k, w=w, e0=e0, offset=offset, m=m)
     y_fit       = fit_curve.get_value(np.array(x))
     return -0.5*(np.sum( ((y-y_fit)/yerr)**2. ))
 
@@ -83,7 +89,7 @@ import emcee
 ndim = len(guess)
 nwalkers = 32
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y, yerr), threads=14)
-initial = [P, tau, k, w, e, offset] 
+initial = [P, tau, k, w, e, offset, m] 
 
 import time
 time_start  = time.time()
@@ -108,11 +114,8 @@ print("Running production...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
 sampler.run_mcmc(p0, 3000);    
 
-
 time_end    = time.time()
 print('\nRuntime = %.2f seconds' %(time_end - time_start))
-
-
 
 
 #==============================================================================
@@ -120,29 +123,27 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-log_samples         = sampler.chain[:, 12000:, :].reshape((-1, ndim))
-real_samples        = copy.copy(log_samples)
+log_samples     = sampler.chain[:, 9000:, :].reshape((-1, ndim))
+real_samples    = copy.copy(log_samples)
 
 
 fig, axes = plt.subplots(ndim, figsize=(10, 7), sharex=True)
-labels_log=[r"$P$", r"$T_{0}$", r"$K$", r"$\omega$", r"$e$", 
-            "offset"]
+labels=[r"$P$", r"$T_{0}$", r"$K$", r"$\omega$", r"$e$", "offset", r"$m$"]
 for i in range(ndim):
     ax = axes[i]
     ax.plot( np.rot90(sampler.chain[:, :, i], 3), "k", alpha=0.3)
     ax.set_xlim(0, sampler.chain.shape[1])
-    ax.set_ylabel(labels_log[i])
+    ax.set_ylabel(labels[i])
     ax.yaxis.set_label_coords(-0.1, 0.5)
 
 axes[-1].set_xlabel("step number");
-plt.savefig('../../output/HD103720/103720_MCMC_-Trace.png')
+plt.savefig('../../output/HD103720/103720pj_MCMC_-Trace.png')
 plt.show()
 
 
 import corner
-labels=[r"$P$", r"$T_{0}$", r"$K$", r"$\omega$", r"$e$", "offset"]
 fig = corner.corner(real_samples, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True)
-plt.savefig('../../output/HD103720/103720_MCMC-Corner.png')
+plt.savefig('../../output/HD103720/103720pj_MCMC-Corner.png')
 plt.show()
 
 
@@ -150,7 +151,7 @@ plt.show()
 # Output
 #==============================================================================
 
-a0, a1, a2, a3, a4, a5 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
+a0, a1, a2, a3, a4, a5, a6 = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(real_samples, [16, 50, 84], axis=0)))
 aa = np.zeros((len(guess),3))
 aa[0,:] = [a0[i] for i in range(3)]
 aa[1,:] = [a1[i] for i in range(3)]
@@ -158,30 +159,28 @@ aa[2,:] = [a2[i] for i in range(3)]
 aa[3,:] = [a3[i] for i in range(3)]
 aa[4,:] = [a4[i] for i in range(3)]
 aa[5,:] = [a5[i] for i in range(3)]
-np.savetxt('../../output/HD103720/103720_MCMC_result.txt', aa, fmt='%.6f')
+aa[6,:] = [a6[i] for i in range(3)]
+np.savetxt('../../103720pj_MCMC_result.txt', aa, fmt='%.6f')
 
 
-P, tau, k, w, e0, offset = aa[:,0]
-fit_curve = Model(P=P, tau=tau, k=k, w=w, e0=e0, offset=offset)
-t_fit   = np.linspace(min(x)-20, max(x), num=10001, endpoint=True)
-y_fit   = fit_curve.get_value(np.array(t_fit))
+P, tau, k, w, e0, offset, m = aa[:,0]
+fit_curve = Model(P=P, tau=tau, k=k, w=w, e0=e0, offset=offset, m=m)
+y_fit   = fit_curve.get_value(np.array(x))
 
 
 plt.figure()
-plt.plot(t_fit, y_fit, label='MCMC fit')
-plt.errorbar(x,   y,    yerr=yerr,   fmt=".", capsize=0, label='HARPS')
+plt.errorbar(x, y_fit, yerr=yerr, fmt=".", capsize=0, label='MCMC fit')
+plt.errorbar(x,   y,   yerr=yerr,   fmt=".", capsize=0, label='HARPS')
 plt.ylabel("RV [m/s]")
 plt.xlabel("MJD")
 plt.legend(loc="upper center")
-plt.savefig('../../output/HD103720/103720_MCMC_fit.png')
+plt.savefig('../../output/HD103720/103720pj_MCMC_fit.png')
 plt.show()
 
-companion   = fit_curve.get_value(np.array(x))
-residual    = np.array(y) - companion
+residual    = np.array(y) - fit_curve.get_value(np.array(x))
 chi2        = sum(residual**2 / np.array(yerr)**2) / (len(x)-len(guess))
 rms         = np.sqrt(np.mean(residual**2))
 wrms        = np.sqrt(sum((residual/yerr)**2)/sum(1/yerr**2))
-
 
 
 # plot residuals 
@@ -190,24 +189,49 @@ plt.errorbar(x, residual, yerr=yerr, fmt=".", capsize=0, label='HARPS', alpha=0.
 plt.ylabel("Residual [m/s]")
 plt.xlabel("MJD [day]")
 plt.legend(loc="upper center")
-plt.savefig('../../output/HD103720/103720_residual.png')
+plt.savefig('../../output/HD103720/103720pj_residual.png')
 plt.show()
 
-# np.savetxt('/Volumes/DataSSD/MATLAB_codes/0816-FT-multiple_stars/' + star + '/BI.txt', companion)
+if 1:
+
+    #==============================================================================
+    # Periodogram
+    #==============================================================================
+
+    from astropy.stats import LombScargle
+
+    min_f   = 0.01
+    max_f   = 5
+    spp     = 1000  # spp=1000 will take a while; for quick results set spp = 10
+
+    frequency0, power0 = LombScargle(x, y, yerr).autopower(minimum_frequency=min_f,
+                                                       maximum_frequency=max_f,
+                                                       samples_per_peak=spp)
+
+    frequency1, power1 = LombScargle(x, jitter, yerr).autopower(minimum_frequency=min_f,
+                                                       maximum_frequency=max_f,
+                                                       samples_per_peak=spp)
 
 
-if 0:
-    inds = np.random.randint(len(log_samples), size=100)
-    plt.figure()
-    for ind in inds:
-        sample = log_samples[ind]
-        fit_curve = Model(P=sample[0], tau=sample[1], k=sample[2], w=sample[3], e0=sample[4], off_aat=sample[5],
-                     off_chiron=sample[6], off_feros=sample[7], off_mj1=sample[8], off_mj3=sample[9])
-        y_fit   = fit_curve.get_value(np.array(t_fit))
-        plt.plot(t_fit, y_fit, "g", alpha=0.1)
-    plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0)
-    plt.ylabel("RV [m/s]")
-    plt.xlabel("Shifted JD [d]")
-    plt.savefig('76920_MCMC_5sets-4-MCMC_100_realizations.png')
-    # plt.close()
+    ax = plt.subplot(111)
+    ax.axvline(x=17, color='k', ls='-.')
+    plt.plot(1/frequency0, power0, label='HARPS RV', ls='-', alpha=0.5)
+    plt.plot(1/frequency1, power1, label='jitter', ls='--', alpha=0.5)
+    plt.xlim(0, 30)
+    plt.xlabel("Period")
+    plt.ylabel("Power")
+    plt.legend()
+    plt.savefig('../../output/HD103720/103720-Periodogram.png')
+    plt.show()
+
+
+
+
+
+
+
+
+
+
+
 
