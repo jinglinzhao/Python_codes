@@ -174,7 +174,7 @@ real_samples        = copy.copy(log_samples)
 real_samples[:,0:3] = np.exp(real_samples[:,0:3])
 real_samples[:,5:]  = real_samples[:,5:]*100
 
-
+plt.rcParams.update({'font.size': 12})
 fig, axes = plt.subplots(ndim, figsize=(10, 7), sharex=True)
 labels_log=[r"$\log\ P$", r"$\log\ T_{0}$", r"$\log\ K$", r"$\omega$", r"$e$", 
             r"$\frac{\delta_{AAT}}{100}$", r"$\frac{\delta_{CHIRON}}{100}$", 
@@ -220,7 +220,8 @@ aa[10,:]= [a10[i] for i in range(3)]
 np.savetxt('76920_MCMC_6sets_result.txt', aa, fmt='%.6f')
 
 
-aa = np.genfromtxt('76920_MCMC_6sets_5MJ_removed_0710/76920_MCMC_6sets_result-5MJ_removed.txt', dtype = None)
+# aa = np.genfromtxt('76920_MCMC_6sets_5MJ_removed_0710/76920_MCMC_6sets_result-5MJ_removed.txt', dtype = None)
+aa = np.genfromtxt('76920_MCMC_6sets_result.txt', dtype = None)
 P, tau, k, w, e0, off_aat, off_chiron, off_feros, off_mj1, off_mj3, off_fideos = aa[:,0]
 fit_curve = Model(P=np.log(P), tau=np.log(tau), k=np.log(k), w=w, e0=e0, off_aat=off_aat/100, off_chiron=off_chiron/100, 
                         off_feros=off_feros/100, off_mj1=off_mj1/100, off_mj3=off_mj3/100, off_fideos=off_fideos/100)
@@ -230,6 +231,8 @@ y_fit   = fit_curve.get_value(np.array(t_fit))
 residual= fit_curve.get_value(np.array(x)) - np.array(y)
 chi2    = sum(residual**2 / np.array(yerr)**2)
 rms     = np.sqrt(np.mean(residual**2))
+yerr    = np.array(yerr)
+wrms    = np.sqrt(sum((residual/yerr)**2)/sum(1/yerr**2))
 np.savetxt('residual_6set.txt', residual)
 
 
@@ -248,7 +251,7 @@ plt.ylabel("Radial velocity [m/s]")
 plt.xlabel("BJD - 2450000")
 plt.legend(loc="upper center")
 plt.savefig('76920_MCMC_6sets-3-MCMC_fit.png')
-plt.show()
+# plt.show()
 
 
 
@@ -274,7 +277,7 @@ plt.ylabel("Radial velocity [m/s]")
 plt.xlabel("Year")
 plt.legend(loc="upper center")
 plt.savefig('76920_MCMC_6sets-3-MCMC_fit2.png', dpi=600)
-plt.show()
+# plt.show()
 
 
 
@@ -286,6 +289,12 @@ day_MJ1     = [((RV_MJ1[i,0]-tau)/P-8)*P for i in range(len(RV_MJ1[:,0]))]
 day_MJ3     = [((RV_MJ3[i,0]-tau)/P-8)*P for i in range(len(RV_MJ3[:,0]))]
 day_FIDEOS  = [((RV_FIDEOS[i,0]-tau)/P-8)*P for i in range(len(RV_FIDEOS[:,0]))]
 day_fit     = ((t_fit-tau)/P-8)*P
+
+fit_curve_old = Model(P=np.log(415.4), tau=np.log(4813.42), k=np.log(186.8), w=-0.1239183768915978, e0=0.856, off_aat=off_aat/100, off_chiron=off_chiron/100, 
+                        off_feros=off_feros/100, off_mj1=off_mj1/100, off_mj3=off_mj3/100, off_fideos=off_fideos/100)
+t_fit_old   = np.linspace(min(RV_ALL[:,0])-300, max(RV_ALL[:,0]+300), num=10001, endpoint=True)
+y_fit_old   = fit_curve_old.get_value(np.array(t_fit_old))
+day_fit_old = ((t_fit_old-tau)/P-8)*P
 
 plt.figure()
 ax = plt.subplot(111)
@@ -303,19 +312,7 @@ plt.ylabel("Radial velocity [m/s]")
 plt.xlabel("Day")
 plt.legend(loc="upper left")
 plt.savefig('76920_MCMC_6sets-3-MCMC_fit3.png', dpi=600)
-plt.show()
-
-
-fit_curve_old = Model(P=np.log(415.4), tau=np.log(4813.42), k=np.log(186.8), w=-0.1239183768915978, e0=0.856, off_aat=off_aat/100, off_chiron=off_chiron/100, 
-                        off_feros=off_feros/100, off_mj1=off_mj1/100, off_mj3=off_mj3/100, off_fideos=off_fideos/100)
-t_fit_old   = np.linspace(min(RV_ALL[:,0])-300, max(RV_ALL[:,0]+300), num=10001, endpoint=True)
-y_fit_old   = fit_curve_old.get_value(np.array(t_fit_old))
-day_fit_old = ((t_fit_old-tau)/P-8)*P
-
-
-
-
-
+# plt.show()
 
 
 if 0:
@@ -385,7 +382,7 @@ plt.xlabel("Period")
 plt.ylabel("Power")
 plt.legend()
 plt.savefig('76920_MCMC_6sets-5-Periodogram.png')
-plt.show()
+# plt.show()
 
 
 #==============================================================================
@@ -408,8 +405,11 @@ m_to_au = 149597870700.
 P       = real_samples[:,0]
 K       = real_samples[:,2]
 e0      = real_samples[:,4]
-a_semi  = (P**2 * 86400.**2 * G * 1.17 * msun / (4. * np.pi**2))**(1/3) / m_to_au
-mpsini  = (P * 86400. / (2. * np.pi * G))**(1/3) * K * (1.17 * msun)**(2/3) * np.sqrt(1 - e0**2) / mjup 
+# a_semi  = (P**2 * 86400.**2 * G * 1.17 * msun / (4. * np.pi**2))**(1/3) / m_to_au
+# mpsini  = (P * 86400. / (2. * np.pi * G))**(1/3) * K * (1.17 * msun)**(2/3) * np.sqrt(1 - e0**2) / mjup 
+a_semi  = (P**2 * 86400.**2 * G * 1.00 * msun / (4. * np.pi**2))**(1/3) / m_to_au
+mpsini  = (P * 86400. / (2. * np.pi * G))**(1/3) * K * (1.00 * msun)**(2/3) * np.sqrt(1 - e0**2) / mjup 
+
 
 a_semi_16, a_semi_50, a_semi_84 = np.percentile(a_semi, [16, 50, 84])
 mpsini_16, mpsini_50, mpsini_84 = np.percentile(mpsini, [16, 50, 84])
