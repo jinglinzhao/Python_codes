@@ -5,27 +5,37 @@ from functions import gran_gen
 
 mode    = 5; 
 n_group = 12
-n_obs   = 60
+n_obs   = 36
 
-ave_sample_per_group 	= int(n_obs / n_group) + 1
-sample_per_group 		= int(1.5 * ave_sample_per_group)
+
+min_sample_per_group 	= 0
+max_sample_per_group 	= 5
 
 
 # generate a starting array in which elements are minimum spaced by 9 
 while True:
-	x_start = np.sort(random.sample(range(400-sample_per_group-1), n_group))
+	x_start = np.sort(random.sample(range(400-max_sample_per_group-1), n_group))
 
-	if not any(np.diff(x_start) < (sample_per_group + 1)):
+	if not any(np.diff(x_start) < (max_sample_per_group*2)):
 		break
 
 # fill in the elements per group
-x 	= np.hstack([i + np.sort(random.sample(range(sample_per_group), random.randint(ave_sample_per_group, sample_per_group))) for i in x_start])
 
-# remove excessive elements and truncate the array size to n_obs 
-idx =  np.sort(random.sample(range(np.size(x)), n_obs))
+
+while True:
+	x 	= np.hstack([i + np.sort(random.sample(range(1, max_sample_per_group), random.randint(min_sample_per_group, max_sample_per_group-1))) for i in x_start])
+	if not len(x) < n_obs:
+		break
+
+x_diff = np.setdiff1d(x, x_start)
+
+# remove excessive elements and truncate the array size to 24
+idx =  np.sort(random.sample(range(np.size(x)), n_obs-n_group))
+x_diff[idx]
+
 
 cluster = x_start
-sample = x[idx]
+sample 	= np.union1d(x_start, x_diff[idx])
 y = np.zeros(len(sample))
 
 
@@ -54,8 +64,8 @@ for i in np.arange(n_group):
 	plt.plot([mid, mid], [0.1, 0.15], 'k-', alpha=0.5, linewidth=2)
 plt.plot([mid0, mid1], [0.15, 0.15], 'k-', alpha=0.5, linewidth=2)
 plt.plot([200, 200], [0.15, 0.25], 'k-', alpha=0.5, linewidth=2)
-plt.text(200, 0.28, '60 samples clustered in 12 groups', horizontalalignment='center') 
-plt.xlabel('Sampling serial number')
+plt.text(200, 0.28, '36 samples clustered in 12 groups', horizontalalignment='center') 
+plt.xlabel('Serial number')
 plt.xlim([0, 400])
 plt.ylim([-0.2, 0.5])	
 plt.yticks([])
