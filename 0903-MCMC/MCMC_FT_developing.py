@@ -16,9 +16,13 @@ def gaussian(x, mu, sig):
 # Setup
 #==============================================================================
 
-real_a      = 0.0
+real_a      = 10
 real_k      = 0.7
 real_phi    = 1.0
+
+# SN = 10000
+SN = 10000
+
 
 N = 500
 amplitude1      = np.zeros(N)
@@ -56,7 +60,7 @@ yes2_both2  = 0     # No correction: both within 2 sigma
 
 mode    = 5; 
 n_group = 12
-n_obs   = 60
+n_obs   = 36
 
 burn_in_1_step  = 2000
 burn_in_2_step  = 1000
@@ -70,6 +74,7 @@ ZZ  = np.loadtxt('ZZ.txt')
 t   = np.arange(len(GG))
 RV_jitter   = np.loadtxt('RV_jitter.txt')
 RV_jitter   = RV_jitter - np.mean(RV_jitter)
+# RV_jitter   = np.hstack((RV_jitter,RV_jitter))
 RV_jitter   = np.hstack((RV_jitter,RV_jitter, RV_jitter, RV_jitter))
 
 
@@ -80,8 +85,8 @@ plt.rcParams.update({'font.size': 15})
 
 if 0: 
     # plt.plot(t, RV_jitter, '--', label='inout jitter')
-    plt.plot(t, XX, 'k^', label=r'$RV_{Gaussian}$')
-    # plt.plot(t, YY, 'bo', label=r'$RV_{FT,L}$')
+    # plt.plot(t, XX, 'k^', label=r'$RV_{Gaussian}$')
+    plt.plot(t, YY, 'bo', label=r'$RV_{FT,L}$')
     # plt.plot(t, ZZ, 'rs', label=r'$RV_{FT,H}$')
     plt.plot(t, RV_jitter, 'm.', label='jitter')
     plt.xlabel(r"$t$")
@@ -103,15 +108,16 @@ if 0:
 # Test smoothing
 #==============================================================================
 if 0:
-    sl      = 8         # smoothing length
+    sl      = 3         # smoothing length
     YYs     = gaussian_smoothing(t, YY, t, sl)
     ZZs     = gaussian_smoothing(t, ZZ, t, sl)
     plt.plot(t, YYs, 'bo', label=r'$RV_{FT,L}$')
     plt.plot(t, ZZs, 'rs', label=r'$RV_{FT,H}$')
     plt.plot(t, GG, '-')
-    # plt.show()
+    plt.show()
     # plt.plot(RV_jitter, GG-YY, 's')
-    # plt.plot(RV_jitter, GG-YYs, 'o')
+    plt.plot(RV_jitter, GG-YY, 'o')
+    plt.plot(RV_jitter, GG-YYs, '*')
     # # plt.plot(RV_jitter, ZZ-GG, 's')
     # plt.plot(RV_jitter, ZZs-GG, 'o')
     plt.show()
@@ -128,11 +134,11 @@ if 0:
     max_f   = 0.1
     spp     = 20
 
-    frequency0, power0 = LombScargle(x, X, yerr).autopower(minimum_frequency=min_f,
+    frequency0, power0 = LombScargle(t, XX).autopower(minimum_frequency=min_f,
                                                        maximum_frequency=max_f,
                                                        samples_per_peak=spp)
 
-    frequency1, power1 = LombScargle(x, XY, yerr).autopower(minimum_frequency=min_f,
+    frequency1, power1 = LombScargle(t, ZZ-XX).autopower(minimum_frequency=min_f,
                                                        maximum_frequency=max_f,
                                                        samples_per_peak=spp)
 
@@ -140,9 +146,9 @@ if 0:
     plt.plot(frequency0, power0, '-', label='RV_HARPS')
     plt.plot(frequency1, power1, '-.', label='Jitter')
     plt.legend()
-    plt.savefig('Periodogram.png')
-    plt.close('all')
-    # plt.show()
+    # plt.savefig('Periodogram.png')
+    # plt.close('all')
+    plt.show()
 
 
 
@@ -169,9 +175,9 @@ for n in range(N):
     #====================================
 
     # re-sample
-    # x       = gran_gen(n_group, n_obs)
-    # x = np.sort(random.sample(range(200), n_obs))
-    x = np.arange(200)
+    x       = gran_gen(n_group, n_obs)
+    # x = np.sort(random.sample(range(400), n_obs))
+    # x = np.arange(200)
     print('Observation samples:')
     print(x)    
     X   = np.array([GG[i] for i in x])
@@ -181,18 +187,25 @@ for n in range(N):
     range_X = (max(X) - min(X))/2
     # range_X = 1
 
-    # smoothing 
-    sl      = 1         # smoothing length
-    XY      = gaussian_smoothing(x, X-Y, x, sl)
-    ZX      = gaussian_smoothing(x, Z-X, x, sl)    
+    # XY = X - Y
+    # ZX = Z - X
 
-    Y_s     = gaussian_smoothing(x, Y, x, sl)
-    Z_s     = gaussian_smoothing(x, Z, x, sl)
-        # XY_s    = gaussian_smoothing(x, XY, x, sl)
-        # ZX_s    = gaussian_smoothing(x, ZX, x, sl)
+    XY = - Y
+    ZX = Z     
+    fit         = np.polyfit(XY, ZX, 1)
+    XYZ         = 0.5*XY+0.5*ZX/fit[0]
+
+    # smoothing 
     if 0:
-        XY  = X - Y_s
-        ZX  = Z_s - X
+        sl      = 1         # smoothing length
+        X       = gaussian_smoothing(x, X, x, sl)
+        XY      = gaussian_smoothing(x, XY, x, sl)
+        ZX      = gaussian_smoothing(x, ZX, x, sl)    
+        XYZ     = gaussian_smoothing(x, XYZ, x, sl)    
+        # Y_s     = gaussian_smoothing(x, Y, x, sl)
+        # Z_s     = gaussian_smoothing(x, Z, x, sl)
+            # XY_s    = gaussian_smoothing(x, XY, x, sl)
+            # ZX_s    = gaussian_smoothing(x, ZX, x, sl)
 
     if 0:
         # plt.plot(x, Y, 'bo', label=r'$RV_{FT,L}$')
@@ -201,111 +214,6 @@ for n in range(N):
         plt.plot(x, Zs, '-')    
         plt.show()
 
-    if 0:
-        left  = 0.06  # the left side of the subplots of the figure
-        right = 0.98    # the right side of the subplots of the figure
-        bottom = 0.15   # the bottom of the subplots of the figure
-        top = 0.95      # the top of the subplots of the figure
-        wspace = 0.5   # the amount of width reserved for blank space between subplots
-        hspace = 0.2   # the amount of height reserved for white space between subplots
-
-        plt.rcParams.update({'font.size': 20})
-        fig, axes = plt.subplots(1, 3, figsize=(20, 5))
-        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-
-        plt.subplot(151)
-        plt.scatter(X, Y, color='k', alpha=0.5)
-        fit = np.polyfit(X, Y, 1)
-        x_sample = np.linspace(min(X)*1.1, max(X)*1.1, num=100, endpoint=True)
-        y_sample = fit[0]*x_sample + fit[1]        
-        plt.plot(x_sample, y_sample, 'g-', linewidth=10, alpha = 0.2)
-        # plt.plot(x_sample, y_sample, 'g-', linewidth=15, alpha = 0.2)       
-        plt.xlabel('$RV_{Gaussian}$ [m/s]')
-        plt.ylabel('$RV_{FT,L}$ [m/s]')    
-
-        plt.subplot(152)
-        plt.scatter(X, Z, color='k', alpha=0.5)
-        fit = np.polyfit(X, Z, 1)
-        x_sample = np.linspace(min(X)*1.2, max(X)*1.2, num=100, endpoint=True)
-        y_sample = fit[0]*x_sample + fit[1]        
-        # plt.plot(x_sample, y_sample, 'g-', linewidth=5, alpha = 0.2)
-        plt.plot(x_sample, y_sample, 'g-', linewidth=50, alpha = 0.2)       
-        plt.xlabel('$RV_{Gaussian}$ [m/s]')
-        plt.ylabel('$RV_{FT,H}$ [m/s]')        
-
-        plt.subplot(153)
-        plt.scatter(X, X-Y, color='k', alpha=0.5)
-        fit = np.polyfit(X, X-Y, 1)
-        x_sample = np.linspace(min(X)*1.2, max(X)*1.2, num=100, endpoint=True)
-        y_sample = fit[0]*x_sample + fit[1]        
-        # plt.plot(x_sample, y_sample, 'g-', linewidth=80, alpha = 0.2)      
-        plt.xlabel('$RV_{Gaussian}$ [m/s]')
-        plt.ylabel(r'$\Delta RV_L$ [m/s]')
-
-        plt.subplot(154)
-        plt.scatter(X, Z-X, color='k', alpha=0.5)
-        fit = np.polyfit(X, Z-X, 1)
-        x_sample = np.linspace(min(X)*1.2, max(X)*1.2, num=100, endpoint=True)
-        y_sample = fit[0]*x_sample + fit[1]        
-        # plt.plot(x_sample, y_sample, 'g-', linewidth=80, alpha = 0.2)      
-        plt.xlabel('$RV_{Gaussian}$ [m/s]')
-        plt.ylabel(r'$\Delta RV_H$ [m/s]')
-
-        # plt.title('Stellar jitter as strong as plantary signal')
-        # plt.title('Jitter only; no planet')
-        # plt.title('Planetary signal dominates')
-
-        plt.subplot(155)
-        fit = np.polyfit(X-Y, Z-X, 1)
-        x_sample = np.linspace(min(X-Y)*1.5, max(X-Y)*1.5, num=100, endpoint=True)
-        y_sample = fit[0]*x_sample + fit[1]        
-        # plt.plot(x_sample, y_sample, 'g-', linewidth=75, alpha = 0.2)    
-        plt.scatter(X-Y, Z-X, color='k', alpha=0.5)
-        plt.xlim([-0.6, 0.6])
-        plt.ylim([-3.8, 3.8])
-        plt.xlabel(r'$\Delta RV_L$ [m/s]')    
-        plt.ylabel(r'$\Delta RV_H$ [m/s]')     
-        # plt.savefig('Correlation_20pj.png')   
-        # plt.savefig('Correlation_2pj.png')   
-        # plt.savefig('Correlation_null.png')   
-        plt.savefig('Correlation_0jitter.png')   
-        plt.show()
-
-
-    if 0:
-        plt.rcParams.update({'font.size': 18})
-        plt.subplots(1, 3, figsize=(20, 6))
-        plt.subplot(131)
-        fit = np.polyfit(X, Y, 1)
-        x_sample = np.linspace(min(X)*1.1, max(X)*1.1, num=100, endpoint=True)
-        y_sample = fit[0]*x_sample + fit[1]
-        plt.scatter(X, Y, color='k')
-        plt.plot(x_sample, y_sample, 'g--', alpha = 0.5)
-        plt.xlabel('$RV_{Gaussian}$ [m/s]')
-        plt.ylabel('$RV_{FT,L}$ [m/s]') 
-
-        plt.subplot(132)
-        fit = np.polyfit(X, Z, 1)
-        x_sample = np.linspace(min(X)*1.1, max(X)*1.1, num=100, endpoint=True)
-        y_sample = fit[0]*x_sample + fit[1]
-        plt.scatter(X, Z, color='k')
-        plt.plot(x_sample, y_sample, 'g--', alpha = 0.5)    
-        plt.scatter(X, Z, color='k')
-        plt.xlabel('$RV_{Gaussian}$ [m/s]')
-        plt.ylabel('$RV_{FT,H}$ [m/s]')        
-        plt.title('Jitter only')
-
-        plt.subplot(133)
-        fit = np.polyfit(X-Y, Z-X, 1)
-        x_sample = np.linspace(min(X-Y)*1.1, max(X-Y)*1.1, num=100, endpoint=True)
-        y_sample = fit[0]*x_sample + fit[1]    
-        plt.scatter(X-Y, Z-X, color='k')
-        plt.plot(x_sample, y_sample, 'g--', alpha = 0.5)    
-        plt.xlabel('$RV_{Gaussian} - RV_{FT,L}$ [m/s]')    
-        plt.ylabel('$RV_{FT,H} - RV_{Gaussian}$ [m/s]')     
-        plt.savefig('Correlation_2_jitter.png')       
-        plt.show()    
-    
 
     if 1: # sub-sampling 
         fig = plt.figure()
@@ -320,7 +228,7 @@ for n in range(N):
     if 1:   # Time series 
         fig = plt.figure()
         frame1 = fig.add_axes((.1,.3,.8,.6))
-        plt.plot(x, Y_s, 'rs', label='FT_Y')
+        plt.plot(x, Y, 'rs', label='FT_Y')
         plt.plot(x, X, 'bo', label='Gaussian')
         plt.title(r'$N_{sample} = %i$' % n_obs)
         plt.ylabel('RV (m/s)')
@@ -337,7 +245,7 @@ for n in range(N):
     if 1:   # Time series 
         fig = plt.figure()
         frame1 = fig.add_axes((.1,.3,.8,.6))
-        plt.plot(x, Z_s, 'rs', label='FT_Z')
+        plt.plot(x, Z, 'rs', label='FT_Z')
         plt.plot(x, X, 'bo', label='Gaussian')
         plt.title(r'$N_{sample} = %i$' % n_obs)
         plt.ylabel('RV (m/s)')
@@ -354,7 +262,7 @@ for n in range(N):
 
     if 1:   # Comparison 
         fig = plt.figure()
-        plt.plot(J, XY*4, '*', label='4*FT_Y')
+        plt.plot(J, XY*2, '*', label='2*FT_Y')
         plt.plot(J, ZX, 'o', label='FT_Z')
         plt.title('Linearity')
         plt.ylabel(r"$RV [m/s]$")
@@ -363,6 +271,7 @@ for n in range(N):
         plt.savefig(new_dir + '2-Linearity.png')
         plt.close('all')
 
+
     #==============================================================================
     # MCMC without jitter correction
     #==============================================================================
@@ -370,8 +279,10 @@ for n in range(N):
     print('# MCMC without jitter correction #')
 
     # each data is equally weighted 
-    yerr    = 0.5 + np.zeros(X.shape) # 0.5 for S/N = 2000 and 0.1 for S/N = 10000
-
+    if SN == 10000:
+        yerr    = 0.1 + np.zeros(X.shape) # 0.5 for S/N = 2000 and 0.1 for S/N = 10000
+    if SN == 2000:
+        yerr    = 0.5 + np.zeros(X.shape) # 0.5 for S/N = 2000 and 0.1 for S/N = 10000
     def lnprior2(theta2):
         a2, k2, phi2, b2 = theta2
         if (-5 < a2 <5) and (-5 < k2 <5) and (-2*np.pi < phi2 < 2*np.pi) and (-5. < b2 < 5):
@@ -472,11 +383,12 @@ for n in range(N):
     RV2_os  = a2[0] * np.sin(t/100. * k2[0] * 2. * np.pi + phi2[0]) + b2[0]
     frame1  = fig.add_axes((.15, .4, .8, .5))
     frame1.axhline(color="gray", ls='--')
-    plt.errorbar(x/100, X, yerr=yerr, fmt="ok", capsize=0, label='Simulated RV', ecolor='blue', mfc='blue', mec='blue', alpha=0.5)
+    # plt.errorbar(x/100, X, yerr=yerr, fmt="ok", capsize=0, label='Simulated RV', ecolor='blue', mfc='blue', mec='blue', alpha=0.5)
+    plt.plot(x/100, X, 'bo', label='Simulated RV', alpha=0.5)
     plt.xlim(0, 4)
-    plt.ylim(min(X)*1.2, max(X)*3)
-    plt.plot(x/100, RV2_pos, 'gs')
-    plt.plot(t/100, RV2_os, 'g--', label='Planet model')
+    plt.ylim(min(X)*1.3, max(X)*2.5)
+    # plt.plot(x/100, RV2_pos, 'gs', alpha=0.5)
+    plt.plot(t/100, RV2_os, 'g-', linewidth=2, alpha=0.7, label='Planet model')
     plt.title('No correction')
     plt.ylabel("RV [m/s]")
     plt.legend(loc = 1, prop={'size': 14})
@@ -493,6 +405,7 @@ for n in range(N):
     plt.ylabel("Residual [m/s]")
     plt.text(2.5, max(res_2)*1.2, r'rms$=%.2f$ m/s' %rms, fontsize=14)
     # plt.legend(loc = 1, prop={'size': 14}, framealpha=0.0)
+    # plt.show()
     plt.savefig(new_dir + '5-Fit2.png')
     plt.close('all')
 
@@ -503,8 +416,7 @@ for n in range(N):
     # MCMC with jitter correction
     #==============================================================================
 
-    fit         = np.polyfit(XY, ZX, 1)
-    XYZ         = 0.5*fit[0]*XY+0.5*ZX
+
     rms         = np.std(X) * 100
     chance_amp  = 0
     chance_per  = 0
@@ -638,9 +550,10 @@ for n in range(N):
         Jitter_pos = (proto_jitter + b[0]) * m[0]
         frame1  = fig.add_axes((.15, .4, .8, .5))
         frame1.axhline(color="gray", ls='--')
-        plt.errorbar(x/100, X, yerr=yerr, fmt="ok", capsize=0, label='Simulated RV', ecolor='blue', mfc='blue', mec='blue', alpha=0.5)
-        plt.plot(x/100, RV_pos, 'gs', alpha = 0.5)
-        plt.plot(t/100, RV_os, 'g--', label='Planet model')
+        # plt.errorbar(x/100, X, yerr=yerr, fmt="ok", capsize=0, label='Simulated RV', ecolor='blue', mfc='blue', mec='blue', alpha=0.5)
+        plt.plot(x/100, X, 'bo', label='Simulated RV', alpha=0.5)
+        # plt.plot(x/100, RV_pos, 'gs', alpha = 0.5)
+        plt.plot(t/100, RV_os, 'g-', linewidth=2, alpha=0.7, label='Planet model')
         plt.plot(x/100, Jitter_pos, '.', label='Jitter correction', color='darkorange')
         plt.xlim(0, 4)
         plt.ylim(min(X)*1.2, max(X)*3)
@@ -920,10 +833,11 @@ for n in range(N):
         RV_pos  = RV_pos - np.mean(RV_pos)
         frame1  = fig.add_axes((.1,.3,.8,.6))
         frame1.axhline(color="gray", ls='--')
-        plt.errorbar(x/100, X, yerr=yerr, fmt="ok", capsize=0, label='Simulated RV', ecolor='blue', mfc='blue', mec='blue', alpha=0.5)
+        # plt.errorbar(x/100, X, yerr=yerr, fmt="ok", capsize=0, label='Simulated RV', ecolor='blue', mfc='blue', mec='blue', alpha=0.5)
+        plt.plot(x/100, X, 'bo', label='Simulated RV', alpha=0.5)
         plt.xlim(0, 4)
-        plt.plot(x/100, RV_pos, 'gs')
-        plt.plot(t/100, RV_os, 'g--', label='Planet model')
+        # plt.plot(x/100, RV_pos, 'gs')
+        plt.plot(t/100, RV_os, 'g-', linewidth=2, alpha=0.7, label='Planet model')
         plt.title('No correction')
         plt.ylabel("RV [m/s]")
         plt.legend()
@@ -939,6 +853,10 @@ for n in range(N):
         plt.legend()
         plt.savefig(new_dir + '5-Fit1_LS.png')
         plt.close('all')
+
+time1 = time.time()
+print('\nRuntime = %.2f seconds' %(time1 - time0))
+
 
 #==============================================================================
 # Hostogram
@@ -1074,15 +992,22 @@ np.savetxt('amplitude2.txt', amplitude2)
 np.savetxt('period1.txt', period1)
 np.savetxt('period2.txt', period2)
 
-if 1:
-    amplitude1 = np.loadtxt('amplitude1.txt')
-    amplitude2 = np.loadtxt('amplitude2.txt')
-    period1 = np.loadtxt('period1.txt')
-    period2 = np.loadtxt('period2.txt')
+# if 1:
+#     amplitude1 = np.loadtxt('amplitude1.txt')
+#     amplitude2 = np.loadtxt('amplitude2.txt')
+#     period1 = np.loadtxt('period1.txt')
+#     period2 = np.loadtxt('period2.txt')
 
-plt.rcParams.update({'font.size': 16})
-plt.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.95)
-idx = (amplitude1 < 4) & (amplitude2 < 4) & (period1 < 10)
+######################################
+# plt.rcParams.update({'font.size': 20})
+# plt.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.95)
+plt.rcParams.update({'font.size': 25}) # paper version 
+plt.subplots_adjust(left=0.20, bottom=0.18, right=0.95, top=0.95)
+# idx = (amplitude1 < 3) & (amplitude2 < 3) & (period1 < 5)
+# idx = (amplitude1 > 0) & (amplitude1 < 4) & (amplitude2 > 0) & (amplitude2 < 4)
+# idx = (amplitude2 > 17)
+# idx = (amplitude1 < 3) & (amplitude2 < 3)
+idx = (amplitude1 > 0)
 
 mu, std = norm.fit(amplitude1[idx])
 x_plot = np.linspace(mu-3*std, mu+3*std, 100)
@@ -1098,17 +1023,25 @@ bins = 20
 ax = plt.subplot(111)
 ax.axvline(x=real_a, color='k', ls='-.')
 plt.hist([amplitude2[idx], amplitude1[idx]], color=['b', 'r'], bins=bins, density=True, alpha=0.5, label=['No correction', 'Jitter correction'])
-plt.xlabel('Amplitude [m/s]')
-plt.ylabel('Number density')
-# plt.ylim([0, 1.39])
-plt.legend()
-plt.show()
+plt.xlabel(r'$K$' + ' [m/s]')
+plt.ylabel('Normalized density')
+# plt.title('S/N = 10,000')
+# plt.title('S/N = 2,000')
+# plt.ylim([0, max(max(amplitude1[idx]), max(amplitude2[idx]))])
+# plt.legend(loc='upper right')
 plt.savefig('Histogram_new1.png')
+plt.show()
 plt.close('all')
+######################################
+
 
 plt.figure()
-plt.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.95)
-if 0:
+# plt.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.95)
+plt.subplots_adjust(left=0.20, bottom=0.18, right=0.95, top=0.95)
+# idx = (period1 < 7) & (period2 < 7)
+idx = (period1 > 0)
+if 1:
+# if real_a == 2:
     mu, std = norm.fit(period1)
     x_plot = np.linspace(mu-3*std, mu+3*std, 100)
     p_plot = norm.pdf(x_plot, mu, std)
@@ -1121,17 +1054,22 @@ if 0:
 
 bins = 20
 ax = plt.subplot(111)
-# ax.axvline(x=real_k, color='k', ls='-.')
+ax.axvline(x=real_k, color='k', ls='-.')
 plt.hist([period2[idx], period1[idx]], color=['b', 'r'], bins=bins, density=True, alpha=0.5, label=['No correction', 'Jitter correction'])
 # plt.hist([period1, period2], color=['r', 'b'], bins=bins, density=True, alpha=0.5)
-plt.xlabel(r'$\nu_{orb}$ / $\nu_{rot}$')
-plt.ylabel('Number density')
+# ax.axvline(x=real_k, color='k', ls='-.')
+plt.xlabel(r'$\nu$')
+plt.ylabel('Normalized density')
+# plt.title('S/N = 10,000')
+# plt.title('S/N = 2,000')
+# plt.xlim([0.5, 1.0])
 # plt.ylim([0, 100])
-plt.legend(loc = 1)
+# plt.legend(loc = 1)
 plt.savefig('Histogram_new2.png')
+plt.show()
 plt.close('all')
 
-s = 0.01
+s = 0.02
 arr = np.arange(N)
 idx_a1 = (real_a*(1-s) < amplitude1) * (amplitude1< real_a*(1+s))
 idx_a2 = (real_a*(1-s) < amplitude2) * (amplitude2< real_a*(1+s))
@@ -1153,16 +1091,61 @@ percentage = [sum(idx_a1)/N, sum(idx_a2)/N, sum(idx_p1)/N, sum(idx_p2)/N, sum(id
 np.savetxt('percentage1.txt', percentage)
 
 
+#==============================================================================
+# Ende
+#==============================================================================    
+# os.chdir('..')
+
+
+print(FAIL)
+
+
+
+
+
+
+
+if 0:
+    fig = plt.figure()
+    plt.plot(X, GG-YY, '*', label='FT_Y')
+    plt.plot(X, GG-YY, 'o', label='FT_Z')
+    plt.title('Linearity')
+    plt.ylabel(r"$RV [m/s]$")
+    plt.xlabel("Jitter [m/s]")
+    plt.legend()
+    plt.show()
+
+    fig = plt.figure()
+    # plt.plot(t, GG, '*', label='GG')
+    # plt.plot(t, GG-YY, '*', label='jitter')
+    plt.plot(t, ZZ-GG, '*', label='jitter')
+    # plt.plot(t, RV_jitter, 'o', label='RV_jitter')
+    plt.legend()
+    plt.show()
+
+
 
 #==============================================================================
 # Lomb-Scargle periodogram 
 #==============================================================================
 from astropy.stats import LombScargle
 
-GG  = np.loadtxt('GG.txt')
-XX  = np.loadtxt('XX.txt')
-YY  = np.loadtxt('YY.txt')
-ZZ  = np.loadtxt('ZZ.txt')
+left  = 0.10  # the left side of the subplots of the figure
+right = 0.96    # the right side of the subplots of the figure
+bottom = 0.10   # the bottom of the subplots of the figure
+top = 0.9      # the top of the subplots of the figure
+wspace = 0.55   # the amount of width reserved for blank space between subplots
+hspace = 0.4   # the amount of height reserved for white space between subplots
+
+plt.rcParams.update({'font.size': 12})
+fig, axes = plt.subplots(2, 1)
+plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+
+DIR = '/Volumes/DataSSD/MATLAB_codes/Project180316-shfit_in_FT/end-to-end/SN2000_p0+j/'
+GG  = np.loadtxt(DIR+'GG.txt')
+XX  = np.loadtxt(DIR+'XX.txt')
+YY  = np.loadtxt(DIR+'YY.txt')
+ZZ  = np.loadtxt(DIR+'ZZ.txt')
 t   = np.arange(len(GG))
 
 min_f   = 1/1000
@@ -1181,69 +1164,55 @@ frequency_2, power_2 = LombScargle(t, GG-YY).autopower(minimum_frequency=min_f,
                                                             maximum_frequency=max_f,
                                                             samples_per_peak=spp)
 
-
-# frequency0, power0 = LombScargle(x, X).autopower(minimum_frequency=min_f,
-#                                                         maximum_frequency=max_f,
-#                                                         samples_per_peak=spp)
-
-# frequency1, power1 = LombScargle(x, ZX).autopower(minimum_frequency=min_f,
-#                                                             maximum_frequency=max_f,
-#                                                             samples_per_peak=spp)
-
-# frequency_2, power_2 = LombScargle(x, XY).autopower(minimum_frequency=min_f,
-#                                                             maximum_frequency=max_f,
-#                                                             samples_per_peak=spp)
-
-# frequency_w, power_w = LombScargle(x, yerr).autopower(minimum_frequency=min_f,
-#                                                             maximum_frequency=max_f,
-#                                                             samples_per_peak=spp)
-
-plt.rcParams.update({'font.size': 16})
-plt.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.95)
-ax = plt.subplot(111)
+ax = plt.subplot(211)
 ax.axhline(y=0, color='k')
 plt.plot(frequency0/0.01, power0, 'b-', label=r'$RV_{Gaussian}$', linewidth=0.8)
 plt.plot(frequency1/0.01, power1, 'r-.', label=r'$\Delta RV_{H}$', alpha=0.7)
 plt.plot(frequency_2/0.01, power_2, 'r--', label=r'$\Delta RV_{L}$', alpha=0.7)
-# plt.plot(frequency_w/0.01, power_w, 'g--', label=r'window', alpha=0.7)
-# plt.title('Lomb-Scargle Periodogram')
-plt.xlabel(r'$\nu_{orb}$ / $\nu_{rot}$')
+plt.title('Jitter only')
+plt.ylabel("Power")
+ax.axvline(x=1, color='r', linewidth=3.0, alpha=0.5)
+ax.axvline(x=2, color='r', linewidth=3.0, alpha=0.5)
+ax.axvline(x=3, color='r', linewidth=3.0, alpha=0.5)
+plt.ylim(0, max(power0)*2)   
+plt.xlim(0, 4)   
+plt.legend()    
+
+# Plot 2 # 
+DIR = '/Volumes/DataSSD/MATLAB_codes/Project180316-shfit_in_FT/end-to-end/SN2000_p2+j/'
+GG  = np.loadtxt(DIR+'GG.txt')
+XX  = np.loadtxt(DIR+'XX.txt')
+YY  = np.loadtxt(DIR+'YY.txt')
+ZZ  = np.loadtxt(DIR+'ZZ.txt')
+t   = np.arange(len(GG))
+
+frequency0, power0 = LombScargle(t, GG).autopower(minimum_frequency=min_f,
+                                                        maximum_frequency=max_f,
+                                                        samples_per_peak=spp)
+
+frequency1, power1 = LombScargle(t, ZZ-GG).autopower(minimum_frequency=min_f,
+                                                            maximum_frequency=max_f,
+                                                            samples_per_peak=spp)
+
+frequency_2, power_2 = LombScargle(t, GG-YY).autopower(minimum_frequency=min_f,
+                                                            maximum_frequency=max_f,
+                                                            samples_per_peak=spp)
+
+ax = plt.subplot(212)
+ax.axhline(y=0, color='k')
+plt.plot(frequency0/0.01, power0, 'b-', label=r'$RV_{Gaussian}$', linewidth=0.8)
+plt.plot(frequency1/0.01, power1, 'r-.', label=r'$\Delta RV_{H}$', alpha=0.7)
+plt.plot(frequency_2/0.01, power_2, 'r--', label=r'$\Delta RV_{L}$', alpha=0.7)
+plt.title('Planet + jitter')
+plt.xlabel(r'$\nu$')
 plt.ylabel("Power")
 ax.axvline(x=0.7, color='b', linewidth=3.0, alpha=0.5)
 ax.axvline(x=1, color='r', linewidth=3.0, alpha=0.5)
 ax.axvline(x=2, color='r', linewidth=3.0, alpha=0.5)
 ax.axvline(x=3, color='r', linewidth=3.0, alpha=0.5)
-plt.ylim(0, max(power0)*1.1)   
+plt.ylim(0, max(power0)*2)   
 plt.xlim(0, 4)   
-plt.legend()    
-plt.savefig('0-Periodogram_1.png')
+# plt.legend()    
+plt.savefig('0-Periodogram.png')
 plt.show()
 plt.close('all')
-
-
-if 0:
-	fig = plt.figure()
-	plt.plot(X, GG-YY, '*', label='FT_Y')
-	plt.plot(X, GG-YY, 'o', label='FT_Z')
-	plt.title('Linearity')
-	plt.ylabel(r"$RV [m/s]$")
-	plt.xlabel("Jitter [m/s]")
-	plt.legend()
-	plt.show()
-
-    fig = plt.figure()
-    # plt.plot(t, GG, '*', label='GG')
-    # plt.plot(t, GG-YY, '*', label='jitter')
-    plt.plot(t, ZZ-GG, '*', label='jitter')
-    # plt.plot(t, RV_jitter, 'o', label='RV_jitter')
-    plt.legend()
-    plt.show()
-
-#==============================================================================
-# Ende
-#==============================================================================    
-# os.chdir('..')
-time1 = time.time()
-print('\nRuntime = %.2f seconds' %(time1 - time0))
-
-print(FAIL)

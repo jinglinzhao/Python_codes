@@ -16,7 +16,7 @@ def gaussian(x, mu, sig):
 # Setup
 #==============================================================================
 
-real_a      = 0
+real_a      = 20
 real_k      = 0.7
 real_phi    = 1.0
 
@@ -56,7 +56,7 @@ yes2_both2  = 0     # No correction: both within 2 sigma
 
 mode    = 5; 
 n_group = 12
-n_obs   = 60
+n_obs   = 36
 
 burn_in_1_step  = 2000
 burn_in_2_step  = 1000
@@ -844,6 +844,7 @@ ax.axvline(x=real_a, color='k', ls='-.')
 plt.hist([amplitude1, amplitude2], color=['r', 'k'], bins=bins, density=True, alpha=0.7)
 plt.xlabel('Amplitude [m/s]')
 plt.ylabel('Number density')
+plt.show()
 plt.savefig('Histogram_new1.png')
 plt.close('all')
 
@@ -867,6 +868,7 @@ plt.hist([period1, period2], color=['r', 'k'], bins=bins, density=True, alpha=0.
 plt.xlabel(r'$\nu_{orb}$ / $\nu_{rot}$')
 plt.ylabel('Number density')
 plt.legend()
+plt.show()
 plt.savefig('Histogram_new2.png')
 plt.close('all')
 
