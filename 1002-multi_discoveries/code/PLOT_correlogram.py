@@ -46,7 +46,7 @@ iddx3   = (BJD < 55698) & (BJD > 55608)
 # Align the data using a moving average
 #==============================================================================
 
-sl 		= 0.5
+sl 		= 0.1
 if YEAR == 2009:
     idx     = idx1
     iddx    = iddx1
@@ -72,8 +72,8 @@ left  = 0.1  # the left side of the subplots of the figure
 right = 0.97    # the right side of the subplots of the figure
 bottom = 0.07   # the bottom of the subplots of the figure
 top = 0.97      # the top of the subplots of the figure
-wspace = 0.05   # the amount of width reserved for blank space between subplots
-hspace = 0.05   # the amount of height reserved for white space between subplots
+wspace = 0.12   # the amount of width reserved for blank space between subplots
+hspace = 0.12   # the amount of height reserved for white space between subplots
 
 alpha   = 0.02
 markersize = 15

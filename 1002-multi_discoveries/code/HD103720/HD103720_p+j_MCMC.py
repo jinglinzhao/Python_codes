@@ -15,12 +15,21 @@ RV_noise= np.loadtxt(DIR + '/RV_noise.dat')
 DIR2    = '/Volumes/DataSSD/MATLAB_codes/0816-FT-multiple_stars/' + star + '/'
 GG      = np.loadtxt(DIR2 + 'GG.txt')
 YY      = np.loadtxt(DIR2 + 'YY.txt')
-jitter  = GG - YY
+ZZ      = np.loadtxt(DIR2 + 'ZZ.txt')
 
 # convert to x, y, yerr
 x       = MJD
 y       = RV_HARPS - np.mean(RV_HARPS)
 yerr    = RV_noise
+
+fit     = np.polyfit(GG-YY, ZZ-GG, 1, w=1/yerr**2)
+jitter  = 1*(GG-YY) + 0*(ZZ-GG)/fit[0]
+
+# from functions import gaussian_smoothing
+# plt.errorbar(x, jitter, yerr=yerr*3**0.5, fmt="r.", capsize=0)
+# jitter_s = gaussian_smoothing(x, jitter, x, 1, 1/yerr**2)
+# plt.errorbar(x, jitter_s, yerr=yerr*3**0.5, fmt="b.", capsize=0)
+# plt.show()
 
 
 #==============================================================================
@@ -51,7 +60,7 @@ e       = 0.086
 offset  = 0.
 k       = 89
 w       = 262 / 360 * 2 * np.pi
-m       = 5
+m       = 3.5
 
 guess   = dict(P=P, tau=tau, k=k, w=w, e0=e, offset=offset, m=m)
 
@@ -67,7 +76,7 @@ guess   = dict(P=P, tau=tau, k=k, w=w, e0=e, offset=offset, m=m)
 
 def lnprior(theta):
     P, tau, k, w, e0, offset, m = theta
-    if (4.4 < P < 4.7) and (80 < k < 100) and (0 < w < 2*np.pi) and (0. < e0 < 0.15) and (1 < m < 8):
+    if (4.4 < P < 4.7) and (80 < k < 100) and (0 < w < 2*np.pi) and (0. < e0 < 0.15) and (0 < m < 8):
         return 0.0
     return -np.inf
 
@@ -160,7 +169,7 @@ aa[3,:] = [a3[i] for i in range(3)]
 aa[4,:] = [a4[i] for i in range(3)]
 aa[5,:] = [a5[i] for i in range(3)]
 aa[6,:] = [a6[i] for i in range(3)]
-np.savetxt('../../103720pj_MCMC_result.txt', aa, fmt='%.6f')
+np.savetxt('../../output/HD103720/103720pj_MCMC_result.txt', aa, fmt='%.6f')
 
 
 P, tau, k, w, e0, offset, m = aa[:,0]
@@ -192,7 +201,7 @@ plt.legend(loc="upper center")
 plt.savefig('../../output/HD103720/103720pj_residual.png')
 plt.show()
 
-if 1:
+if 0:
 
     #==============================================================================
     # Periodogram
@@ -202,7 +211,7 @@ if 1:
 
     min_f   = 0.01
     max_f   = 5
-    spp     = 1000  # spp=1000 will take a while; for quick results set spp = 10
+    spp     = 10  # spp=1000 will take a while; for quick results set spp = 10
 
     frequency0, power0 = LombScargle(x, y, yerr).autopower(minimum_frequency=min_f,
                                                        maximum_frequency=max_f,

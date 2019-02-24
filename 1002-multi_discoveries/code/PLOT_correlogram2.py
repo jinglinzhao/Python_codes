@@ -61,7 +61,7 @@ if 0:
 #==============================================================================
 # import my jitter metric 
 #==============================================================================
-YEAR = 2011
+YEAR = 2010
 
 t 		= np.loadtxt('../data/HD128621/plot/' + str(YEAR) + '/plot_t.txt') + 0.5 	# JD - 2,400,000
 y 		= np.loadtxt('../data/HD128621/plot/' + str(YEAR) + '/plot_y.txt')
@@ -148,8 +148,8 @@ left  = 0.1  # the left side of the subplots of the figure
 right = 0.97    # the right side of the subplots of the figure
 bottom = 0.07   # the bottom of the subplots of the figure
 top = 0.97      # the top of the subplots of the figure
-wspace = 0.05   # the amount of width reserved for blank space between subplots
-hspace = 0.05   # the amount of height reserved for white space between subplots
+wspace = 0.15   # the amount of width reserved for blank space between subplots
+hspace = 0.15   # the amount of height reserved for white space between subplots
 
 alpha   = 0.02
 markersize = 15

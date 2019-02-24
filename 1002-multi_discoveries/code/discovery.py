@@ -37,6 +37,21 @@ ZX 	= ZZ - XX
 
 os.chdir('../output/'+star)
 
+c = np.loadtxt('c.txt')
+
+#==============================================================================
+def wrms(x, w):
+    mean = np.sum(x*w)/np.sum(w)
+    return np.sqrt(np.sum((x-mean)**2*w) / np.sum(w))
+
+w = 1/yerr**2
+wrms(XY[idx], w[idx])
+wrms(ZX[idx], w[idx])
+wrms(XX[idx] - trend(t[idx]), w[idx])
+wrms2 = wrms(xy, w)
+print(wrms1, wrms2, wrms2/wrms1)
+#==============================================================================
+
 #==============================================================================
 # Visualizing
 #==============================================================================
@@ -44,12 +59,13 @@ os.chdir('../output/'+star)
 # present the pre-filetered data
 
 plt.figure()
-# plt.errorbar(t, XX, yerr=yerr, fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
-plt.errorbar(t, XY, yerr=yerr, fmt=".r", capsize=0, alpha=0.2, label=r'$\Delta RV_L$')
+plt.errorbar(t, XX, yerr=yerr, fmt=".k", capsize=0, alpha=0.2, label='$RV_{HARPS}$')
+# plt.errorbar(t, XY, yerr=yerr, fmt=".r", capsize=0, alpha=0.2, label=r'$\Delta RV_L$')
 # plt.errorbar(t, ZX, yerr=yerr, fmt=".b", capsize=0, alpha=0.2, label=r'$\Delta RV_H$')
 plt.ylabel("RV [m/s]")
 plt.xlabel("JD - 2,400,000")
 plt.legend()
+plt.savefig('00-time_series.png')
 plt.show()
 
 # Filter the unwanted data #
@@ -69,7 +85,7 @@ plt.errorbar(FWHM[idx], XY[idx], yerr=yerr[idx], fmt=".k", alpha=0.2)
 plt.errorbar(FWHM[~idx], XY[~idx], yerr=yerr[~idx], fmt=".b", alpha=0.2)
 plt.ylabel(r'$\Delta RV_L$ [m/s]')
 plt.xlabel("FWHM")
-plt.savefig('0-correlation_XY.png')
+# plt.savefig('0-correlation_XY.png')
 plt.show()
 
 if 0:
@@ -88,6 +104,12 @@ plt.xlabel("FWHM")
 plt.savefig('0-correlation_ZX.png')
 plt.show()
 
+plt.figure()
+plt.errorbar(t[idx], XY[idx], yerr=yerr[idx], fmt=".r", capsize=0, alpha=0.2, label=r'$\Delta RV_L$')
+plt.ylabel("RV [m/s]")
+plt.xlabel("JD - 2,400,000")
+plt.legend()
+plt.show()
 
 # Binary orbit (without fitting planet) # 
 # email correspondence with Dumusque
@@ -114,7 +136,7 @@ plt.errorbar(t[idx], trend(t[idx]), yerr=yerr[idx], fmt=".b", capsize=0, alpha=0
 # plt.errorbar(t[idx], ZZ[idx]-trend(t[idx]),  yerr=yerr[idx], fmt=".b", capsize=0, alpha=0.1)
 # plt.errorbar(t[~idx], XX[~idx]-trend(t[~idx]), yerr=yerr[~idx], fmt=".r", capsize=0, alpha=0.2, label=r'$RV_{HARPS}$ outlier')
 plt.legend()
-plt.savefig('1-RV0.png')
+# plt.savefig('1-RV0.png')
 plt.show()
 
 
@@ -125,7 +147,7 @@ plt.errorbar(t[idx], XX[idx] - trend(t[idx]), yerr=yerr[idx], fmt=".k", capsize=
 plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
 plt.ylabel("RV [m/s]")
 plt.xlabel("JD - 2,400,000")
-plt.savefig('AlphaCen2010.png')
+# plt.savefig('AlphaCen2010.png')
 plt.show()
 
 # correlation # 
@@ -185,52 +207,53 @@ if 0:
 #==============================================================================
 # Correlation 1
 #==============================================================================
-left  = 0.05  # the left side of the subplots of the figure
-right = 0.95    # the right side of the subplots of the figure
+left  = 0.07  # the left side of the subplots of the figure
+right = 0.97    # the right side of the subplots of the figure
 bottom = 0.15   # the bottom of the subplots of the figure
 top = 0.9      # the top of the subplots of the figure
-wspace = 0.4   # the amount of width reserved for blank space between subplots
+wspace = 0.5   # the amount of width reserved for blank space between subplots
 hspace = 0.2   # the amount of height reserved for white space between subplots
 
-plt.rcParams.update({'font.size': 16})
-fig, axes = plt.subplots(1, 3, figsize=(20, 5))
+plt.rcParams.update({'font.size': 25})
+fig, axes = plt.subplots(1, 5, figsize=(24, 6))
 plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
 
 plt.subplot(151)
-plt.plot(XX[idx]-P.polyval(t[idx], c)-np.mean(XX[idx]-P.polyval(t[idx], c)), YY[idx]-P.polyval(t[idx], c)-np.mean(YY[idx]-P.polyval(t[idx], c)), '.k', markersize=3, alpha=0.3)
+plt.plot(XX[idx]-trend(t[idx])-np.mean(XX[idx]-trend(t[idx])), YY[idx]-trend(t[idx])-np.mean(YY[idx]-trend(t[idx])), '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), YY[~idx], '*r', markersize=3, alpha=0.3)
 plt.xlabel(r'$RV_{HARPS}$ [m/s]')
 plt.ylabel(r'$RV_{FT,L}$ [m/s]')    
 
 plt.subplot(152)
-plt.plot(XX[idx]-P.polyval(t[idx], c)-np.mean(XX[idx]-P.polyval(t[idx], c)), ZZ[idx]-P.polyval(t[idx], c)-np.mean(ZZ[idx]-P.polyval(t[idx], c)), '.k', markersize=3, alpha=0.3)
+plt.plot(XX[idx]-trend(t[idx])-np.mean(XX[idx]-trend(t[idx])), ZZ[idx]-trend(t[idx])-np.mean(ZZ[idx]-trend(t[idx])), '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), ZZ[~idx], '*r', markersize=3, alpha=0.3)
 plt.xlabel(r'$RV_{HARPS}$ [m/s]')
 plt.ylabel(r'$RV_{FT,H}$ [m/s]')        
 
 plt.subplot(153)
-plt.plot(XX[idx]-P.polyval(t[idx], c)-np.mean(XX[idx]-P.polyval(t[idx], c)), XY[idx], '.k', markersize=3, alpha=0.3)
+plt.plot(XX[idx]-trend(t[idx])-np.mean(XX[idx]-trend(t[idx])), XY[idx]-np.mean(XY[idx]), '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), XY[~idx], '*r', markersize=3, alpha=0.3)
 plt.xlabel(r'$RV_{HARPS}$ [m/s]')
 plt.ylabel(r'$\Delta RV_L$ [m/s]')
-plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
+# plt.title(r'$\alpha$' + ' Centauri B 2010-03-23..2010-06-12')
 # plt.title(r'$\alpha$' + ' Centauri B 2011-02-18..2011-05-15')
 # plt.title(r'$\alpha$' + ' Centauri B 2009-02-15..2009-05-06')
+plt.title(r'$\alpha$' + ' Centauri B - Epoch 2')
 
 plt.subplot(154)
-plt.plot(XX[idx]-P.polyval(t[idx], c)-np.mean(XX[idx]-P.polyval(t[idx], c)), ZX[idx], '.k', markersize=3, alpha=0.3)
+plt.plot(XX[idx]-trend(t[idx])-np.mean(XX[idx]-trend(t[idx])), ZX[idx]-np.mean(ZX[idx]), '.k', markersize=3, alpha=0.3)
 # plt.plot(XX[~idx]-trend(t[~idx]), ZX[~idx], '*r', markersize=3, alpha=0.3)   
 plt.xlabel(r'$RV_{HARPS}$ [m/s]')
 plt.ylabel(r'$\Delta RV_H$ [m/s]')
 
 plt.subplot(155)
-fit = np.polyfit(XY, ZX, 1)
+fit = np.polyfit(XY[idx]-np.mean(XY[idx]), ZX[idx]-np.mean(ZX[idx]), 1)
 x_sample = np.linspace(min(XY)*1.2, max(XY)*1.2, num=100, endpoint=True)
-plt.plot(XY[idx], ZX[idx], '.k', markersize=3, alpha=0.3)
+plt.plot(XY[idx]-np.mean(XY[idx]), ZX[idx]-np.mean(ZX[idx]), '.k', markersize=3, alpha=0.3)
 # plt.plot(XY[~idx], ZX[~idx], '*r', markersize=3, alpha=0.3)   
 plt.xlabel(r'$\Delta RV_L$ [m/s]')    
 plt.ylabel(r'$\Delta RV_H$ [m/s]')     
-plt.savefig('Correlation.png')   
+plt.savefig('Correlation_2010.png')   
 plt.show()
 
 
@@ -294,7 +317,7 @@ plt.plot(XY[idx][idxx2], ZX[idx][idxx2], '.b', markersize=3, alpha=0.1)
 plt.plot(XY[idx][idxx3], ZX[idx][idxx3], '.r', markersize=3, alpha=0.1)
 plt.xlabel(r'$\Delta RV_L$ [m/s]')    
 plt.ylabel(r'$\Delta RV_H$ [m/s]')     
-# plt.savefig('Correlation.png')   
+plt.savefig('Correlation_4.png')   
 plt.show()
 
 

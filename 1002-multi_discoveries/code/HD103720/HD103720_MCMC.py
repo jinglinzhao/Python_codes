@@ -41,10 +41,10 @@ class Model(Model):
 
 # The dict() constructor builds dictionaries directly from sequences of key-value pairs:
 P       = 4.5557
-tau     = 3.
-e       = 0.086
+tau     = 3.24
+e       = 0.073
 offset  = 0.
-k       = 89
+k       = 89.5
 w       = 262 / 360 * 2 * np.pi
 
 guess   = dict(P=P, tau=tau, k=k, w=w, e0=e, offset=offset)
@@ -90,23 +90,23 @@ time_start  = time.time()
 
 print("Running first burn-in...")
 p0 = initial + 1e-2 * np.random.randn(nwalkers, ndim)
-p0, lp, _ = sampler.run_mcmc(p0, 3000)
+p0, lp, _ = sampler.run_mcmc(p0, 2000)
 
 print("Running second burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-3 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 2000)
+p0, _, _ = sampler.run_mcmc(p0, 1000)
 
 print("Running third burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-3 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 2000)
+p0, _, _ = sampler.run_mcmc(p0, 1000)
 
 print("Running fourth burn-in...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
-p0, _, _ = sampler.run_mcmc(p0, 2000)
+p0, _, _ = sampler.run_mcmc(p0, 1000)
 
 print("Running production...")
 p0 = p0[np.argmax(lp)] + 1e-4 * np.random.randn(nwalkers, ndim)
-sampler.run_mcmc(p0, 3000);    
+sampler.run_mcmc(p0, 2000);    
 
 
 time_end    = time.time()
@@ -120,7 +120,7 @@ print('\nRuntime = %.2f seconds' %(time_end - time_start))
 #==============================================================================
 
 import copy
-log_samples         = sampler.chain[:, 12000:, :].reshape((-1, ndim))
+log_samples         = sampler.chain[:, 5000:, :].reshape((-1, ndim))
 real_samples        = copy.copy(log_samples)
 
 
@@ -193,7 +193,7 @@ plt.legend(loc="upper center")
 plt.savefig('../../output/HD103720/103720_residual.png')
 plt.show()
 
-# np.savetxt('/Volumes/DataSSD/MATLAB_codes/0816-FT-multiple_stars/' + star + '/BI.txt', companion)
+np.savetxt('/Volumes/DataSSD/MATLAB_codes/0816-FT-multiple_stars/' + star + '/BI.txt', companion)
 
 
 if 0:

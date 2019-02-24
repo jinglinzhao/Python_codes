@@ -196,7 +196,7 @@ if 0:
     # plt.savefig('../output/HD128621/final_plot_FE4376.png')
     # plt.savefig('../output/HD128621/final_plot_FEfe5250.png')
     # plt.savefig('../output/HD128621/final_plot_RHK.png')
-    plt.savefig('../output/HD128621/final_plot.png')
+    # plt.savefig('../output/HD128621/final_plot.png')
     plt.show()
 
 
