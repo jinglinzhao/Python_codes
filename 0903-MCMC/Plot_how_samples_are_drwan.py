@@ -37,7 +37,8 @@ x_diff[idx]
 cluster = x_start
 sample 	= np.union1d(x_start, x_diff[idx])
 y = np.zeros(len(sample))
-
+y1 = np.zeros(len(x_start))
+y2 = np.zeros(len(idx))
 
 plt.rcParams.update({'font.size': 20})
 left  = 0.02  # the left side of the subplots of the figure
@@ -47,7 +48,8 @@ top = 0.95      # the top of the subplots of the figure
 fig = plt.subplots(figsize=(20, 2.5))
 plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top)
 # plt.axhline(color="gray", ls='-')
-plt.plot(sample, y, 'ko', alpha = 0.5)
+plt.plot(x_start, y1, 'bo', alpha = 0.5)
+plt.plot(x_diff[idx], y2, 'ko', alpha = 0.5)
 for i in np.arange(n_group):
 	if i < n_group-1:
 		idx = (sample >= cluster[i]) & (sample < cluster[i+1])
