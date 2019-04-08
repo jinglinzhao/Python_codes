@@ -38,7 +38,7 @@ x_up = max(G)+0.1*range_x
 y_up = max(Z)+0.2*range_y
 y_lo = min(Z)-0.1*range_y
 
-fig.suptitle('Jitter amplitude' + r'$\approx$' + 'plantary amplitude', y=0.95)
+fig.suptitle('Jitter amplitude' + r'$\approx$' + 'planetary amplitude', y=0.95)
 
 axes_1 = plt.subplot(131)
 plt.scatter(G, Y, color='k', alpha=0.5, s=s)

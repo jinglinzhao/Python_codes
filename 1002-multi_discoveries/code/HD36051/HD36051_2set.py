@@ -247,7 +247,7 @@ plt.show()
 # Phase folded plot # 
 
 plt.rcParams.update({'font.size': 16})
-fig = plt.figure(figsize=(12,8))
+fig = plt.figure(figsize=(14,7))
 frame1  = fig.add_axes((.15, .35, .8, .55))
 
 phase       = x/P - [int(x[i]/P) for i in range(len(x))]
@@ -282,8 +282,9 @@ class PlotModel(Model):
 plot_x      = np.linspace(0, 2, num=1001)
 curve       = PlotModel(P=P, tau=tau, k=k, w=w, e0=e0)
 plot_y      = curve.get_value(np.array(plot_x*P))
-plt.plot(plot_x, plot_y, alpha=0.5)
-plt.legend()
+plt.plot(plot_x, plot_y, 'g-', linewidth=2.0, alpha=0.5, label='HD 36051 b candidate')
+plt.legend(loc=2)
+plt.ylim(-29.5,39)
 frame1.set_xticklabels([])
 
 res = phase_y - curve.get_value(np.array(phase_x * P))
