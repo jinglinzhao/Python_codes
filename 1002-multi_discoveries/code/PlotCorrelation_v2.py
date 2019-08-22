@@ -129,5 +129,6 @@ plt.xlim(min(x)-xspacing, max(x)+xspacing)
 plt.ylim(y_lo, y_up)
 plt.text(min(x-RV_noise), 0.9*y_up+0.1*y_lo, 'R={0:.2f} ({1:.2f})'.format(r,r1), fontsize=14)
 plt.text(min(x-RV_noise), 0.8*y_up+0.2*y_lo, 'k={0:.2f}±{1:.2f}'.format(fit[0],V[0,0]**0.5), fontsize=14)
+plt.savefig('../output/Correlation_' + star + '_V_span.png')
 plt.show()
 

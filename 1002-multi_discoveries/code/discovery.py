@@ -143,10 +143,13 @@ plt.xlabel("JD - 2,400,000")
 plt.savefig('AlphaCen2010.png')
 plt.show()
 
+# remove both Second-order polinomial and linear fit 
+# fit, V = np.polyfit(t[idx], XX[idx] - trend(t[idx]), 1, w=1/(yerr[idx])**2, cov=True)
+# y_lr = XX[idx] - trend(t[idx]) - fit[0]*t[idx] - fit[1]
 
-fit, V = np.polyfit(t[idx], XX[idx] - trend(t[idx]), 1, w=1/(yerr[idx])**2, cov=True)
-
-y_lr = XX[idx] - trend(t[idx]) - fit[0]*t[idx] - fit[1]
+# remove the linear trend only
+fit, V = np.polyfit(t[idx], XX[idx], 1, w=1/(yerr[idx])**2, cov=True)
+y_lr = XX[idx] - fit[0]*t[idx] - fit[1]
 
 fig, axes = plt.subplots(figsize=(20, 5))
 # plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
@@ -171,7 +174,7 @@ bottom = 0.2   # the bottom of the subplots of the figure
 top = 0.8      # the top of the subplots of the figure
 wspace = 0.55   # the amount of width reserved for blank space between subplots
 hspace = 0.2   # the amount of height reserved for white space between subplots
-alpha = 0.2
+alpha = 0.08
 # w = 1/RV_noise**2
 Nx = 3
 Ny = 3

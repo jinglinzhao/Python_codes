@@ -122,8 +122,14 @@ BIS_s       = gaussian_smoothing(BJD[iddx], BIS[iddx], t, sl, np.ones(sum(iddx))
 FWHM_s      = gaussian_smoothing(BJD[iddx], FWHM[iddx], t, sl, np.ones(sum(iddx)))
 FTL_s       = gaussian_smoothing(t, y, t, sl, yerr)
 # RV_no_binary= RV_HARPS[idx_HARPS] - P.polyval(t, c)
-RV_no_binary= RV_HARPS[idx_HARPS] - trend(t)
-RV_s        = gaussian_smoothing(t, RV_no_binary, t, sl, yerr)
+
+# remove binary 
+# RV_no_binary= RV_HARPS[idx_HARPS] - trend(t)
+# RV_s        = gaussian_smoothing(t, RV_no_binary, t, sl, yerr)
+
+# remove a linear trend
+fit, V  = np.polyfit(t, RV_HARPS[idx_HARPS], 1, w=1/yerr**2, cov=True)
+RV_s    = RV_HARPS[idx_HARPS] - fit[0]*t - fit[1]
 
 if 0: # visualize the binary removal
     # plt.plot(t, RV_HARPS[idx_HARPS] - np.mean(RV_HARPS[idx_HARPS]), 'k.', alpha = 0.1)
@@ -140,6 +146,9 @@ if 0: # visualize the binary removal
     plt.plot(t, y, 'g.', alpha=0.05)
     plt.show()
 
+# plt.plot(t, RV_s, '.')
+# plt.show()
+
 #==============================================================================
 # Correlogram
 #==============================================================================
@@ -148,11 +157,11 @@ left  = 0.1  # the left side of the subplots of the figure
 right = 0.97    # the right side of the subplots of the figure
 bottom = 0.07   # the bottom of the subplots of the figure
 top = 0.97      # the top of the subplots of the figure
-wspace = 0.15   # the amount of width reserved for blank space between subplots
-hspace = 0.15   # the amount of height reserved for white space between subplots
+wspace = 0.1   # the amount of width reserved for blank space between subplots
+hspace = 0.1   # the amount of height reserved for white space between subplots
 
 alpha   = 0.02
-markersize = 15
+markersize = 5
 
 plt.rcParams.update({'font.size': 16})
 fig, axes = plt.subplots(figsize=(14, 14))
@@ -228,10 +237,13 @@ plt.plot(log_RHK_s, FWHM_s, '.k', markersize=markersize, alpha=alpha)
 plt.xticks([])
 plt.yticks([])
 #
-fig.add_subplot(6,6,33)
+
+axes_2 = fig.add_subplot(6,6,33)
 plt.plot(log_RHK_s, BIS_s, '.k', markersize=markersize, alpha=alpha)
 plt.xlabel('log $(R^{\'}_{HK})$')
 plt.yticks([])
+axes_2.xaxis.set_major_locator(plt.MaxNLocator(2))
+
 
 fig.add_subplot(6,6,22)
 plt.plot(fe4376_s, fe5250_s, '.k', markersize=markersize, alpha=alpha)
