@@ -200,6 +200,66 @@ if 0:
     plt.show()
 
 
+
+# Periodogram # 
+from astropy.stats import LombScargle
+min_f   = 1/90
+max_f   = 10
+spp     = 50
+
+# 2009 #
+t       = np.loadtxt('../data/HD128621/plot/2009/plot_t.txt') + 0.5
+y       = np.loadtxt('../data/HD128621/plot/2009/plot_y.txt')
+yerr    = np.loadtxt('../data/HD128621/plot/2009/plot_yerr.txt')
+
+frequency2009, power2009 = LombScargle(t, y, yerr).autopower(minimum_frequency=min_f,
+                                                        maximum_frequency=max_f,
+                                                        samples_per_peak=spp)
+
+# 2010 #
+t       = np.loadtxt('../data/HD128621/plot/2010/plot_t.txt') + 0.5
+y       = np.loadtxt('../data/HD128621/plot/2010/plot_y.txt')
+yerr    = np.loadtxt('../data/HD128621/plot/2010/plot_yerr.txt')
+
+frequency2010, power2010 = LombScargle(t, y, yerr).autopower(minimum_frequency=min_f,
+                                                        maximum_frequency=max_f,
+                                                        samples_per_peak=spp)
+
+# 2011 #
+t       = np.loadtxt('../data/HD128621/plot/2011/plot_t.txt') + 0.5
+y       = np.loadtxt('../data/HD128621/plot/2011/plot_y.txt')
+yerr    = np.loadtxt('../data/HD128621/plot/2011/plot_yerr.txt')
+
+frequency2011, power2011 = LombScargle(t, y, yerr).autopower(minimum_frequency=min_f,
+                                                        maximum_frequency=max_f,
+                                                        samples_per_peak=spp)
+
+plt.rcParams.update({'font.size': 14})
+ax = plt.subplot(111)
+# ax.set_xscale('log')
+plt.plot(1/frequency2009, power2009, 'b--', label='2009')
+period2009 = 1/frequency2009[power2009 == max(power2009)]
+ax.axvline(x=period2009, color='b', linestyle='--', linewidth=2, alpha = 0.5)
+
+plt.plot(1/frequency2010, power2010, 'k-', label='2010')
+period2010 = 1/frequency2010[power2010 == max(power2010)]
+ax.axvline(x=period2010, color='k', linestyle='-', linewidth=2, alpha = 0.5)
+
+plt.plot(1/frequency2011, power2011, 'r-.', label='2011')
+period2011 = 1/frequency2011[power2011 == max(power2011)]
+ax.axvline(x=period2011, color='r', linestyle='-.', linewidth=2, alpha = 0.5)
+
+plt.title('Periodogram')
+plt.xlabel('day')
+plt.ylabel("Power")
+plt.ylim(0, 0.9)   
+plt.xlim(0, 90)   
+plt.legend()
+plt.savefig('../output/Periodogram.png')
+plt.show()
+
+print(period2009, period2010, period2011)
+
 #
 #
 #
